@@ -19,10 +19,20 @@
 #define BULLET 5
 #define BRICK 6
 #define BLANK 0
+#define DIMENSION 80
+
+#define KNRM  "\x1B[0m"
+#define KRED  "\x1B[31m"
+#define KGRN  "\x1B[32m"
+#define KYEL  "\x1B[33m"
+#define KBLU  "\x1B[34m"
+#define KMAG  "\x1B[35m"
+#define KCYN  "\x1B[36m"
+#define KWHT  "\x1B[37m"
 
 typedef struct {
 	char name[20];
-	//IP address
+	struct sockaddr_in address;
 	int flag;
 	int x,y;
 	int health;
@@ -34,7 +44,7 @@ typedef struct {
 	int direction;
 }CELL;
 
-CELL matrix[100][100];
+CELL matrix[DIMENSION][DIMENSION];
 
 typedef struct {
 	int row,col;
@@ -44,9 +54,12 @@ typedef struct {
 typedef struct {
 	CLIENT clients[5];
 	DATA changes[1024];
+	int num_players;
+	int num_changes;
+	char msg[1024];
 }SEND;
 
-SEND snd;
+SEND receive;
 
 char buffer[1024];
 
@@ -54,13 +67,50 @@ void getInput(char* c){
 	struct pollfd mypoll = { STDIN_FILENO, POLLIN|POLLPRI };
 
 	system ("/bin/stty raw");
-	if( poll(&mypoll, 1, 500) )
+	if( poll(&mypoll, 1, 50) )
 	{
-    	scanf("%c",c);	
+		scanf("%c",c);	
 		return ;
 	}
 	system("/bin/stty cooked");
 	*c = '$';
+}
+
+void reflect_changes(){
+	int i;
+	for(i=0;i<=receive.num_changes;i++){
+		matrix[receive.changes[i].row][receive.changes[i].col] = receive.changes[i].cell;
+	}
+}
+
+void display(){
+	int i,j;
+	printf("Nick\t\tPoints\n");
+	for(i=0;i<=receive.num_players;i++){
+		printf("%s\t\t%d\n",receive.clients[i].name,receive.clients[i].points);	
+	}
+	printf("\n\n");
+	for(i=0;i<DIMENSION;i++){
+		for(j=0;j<DIMENSION;j++){
+			if(matrix[i][j].type==P1){
+			printf("%s%d",KRED,matrix[i][j].type);
+			}	
+			else if(matrix[i][j].type==BRICK)
+			printf("%s%d",KYEL,matrix[i][j].type);
+			else
+			printf("%s%d",KWHT,matrix[i][j].type);
+		}
+		printf("\n");
+	}
+	i = 0, j = 0;
+	while(j < 4){
+		while(receive.msg[i] != '*' && receive.msg[i] != '\0'){
+			printf("%c",receive.msg[i++]);
+		}
+		printf("\n");
+		i++;
+		j++;
+	}
 }
 
 int main()
@@ -75,8 +125,6 @@ int main()
 	serverAddr.sin_family = AF_INET;
 	serverAddr.sin_port = htons(9000);
 	serverAddr.sin_addr.s_addr = inet_addr("172.17.47.15");
-	//memset(serverAddr.sin_zero, '\0', sizeof serverAddr.sin_zero);
-	//bind(socketfd,(stuct sockaddr *)&serverAddr,sizeof(serverAddr));
 
 	addr_size = sizeof(serverAddr);
 	memset(buffer,0, 1024);
@@ -86,9 +134,10 @@ int main()
 	buffer[0] = '*';
 	scanf("%s",buffer+1);
 	sendto(socketfd,&buffer,1024,0,(struct sockaddr*)&serverAddr,addr_size);
+	int n;
 
 	while(1){
-		int n = recvfrom(socketfd,buffer,1024,MSG_DONTWAIT,(struct sockaddr*)&serverAddr,&addr_size);
+		n = recvfrom(socketfd,buffer,1024,MSG_DONTWAIT,(struct sockaddr*)&serverAddr,&addr_size);
 		//printf("%s %d \n",buffer,n);
 		int flag = 0;
 		if(n > 0){
@@ -119,14 +168,42 @@ int main()
 		fflush(stdout);
 		char c; 
 		getInput(&c);
-		//printf("%c\n",c);
+		if(c == '*') break;
 		if(c != 'y' && c != 'n') continue;
 		buffer[0] = '*';
 		if(c == 'y') buffer[1] = '1';
 		else buffer[1] = '2';
 		buffer[2] = '\0';
 		sendto(socketfd,&buffer,1024,0,(struct sockaddr*)&serverAddr,addr_size);
-		printf("sent\n");
+	}
+	
+	n = recvfrom(socketfd,&matrix,sizeof(matrix),0,(struct sockaddr*)&serverAddr,&addr_size);
+	printf("%d\n",n);
+	n = recvfrom(socketfd,&receive,sizeof(SEND),0,(struct sockaddr*)&serverAddr,&addr_size);
+	printf("%d\n",receive.num_players);
+	display();
+	buffer[1] = '*';
+	buffer[2] = '\0';
+	while(1){ // Game starts
+		buffer[0] = '$';
+		getInput(&buffer[0]);
+		if(buffer[0] == '*')
+			break;
+		if(buffer[0] == ' ' || buffer[0] == 'D' || buffer[0] == 'S' || buffer[0] == 'A' || buffer[0] == 'W'){
+			sendto(socketfd,buffer,1024,0,(struct sockaddr*)&serverAddr,addr_size);
+		}
+		while(1){
+			n = recvfrom(socketfd,&receive,sizeof(receive),MSG_DONTWAIT,(struct sockaddr*)&serverAddr,&addr_size);
+			if(n > 0){
+				int i;
+				for(i=0;i<=receive.num_changes;i++){
+					printf("%d %d %d\n",receive.changes[i].row,receive.changes[i].col,receive.changes[i].cell.type);
+				}
+				reflect_changes();
+				display();
+			}
+			else break;
+		}
 	}
 	return 0;
 }
