@@ -6,6 +6,7 @@
 #include <poll.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <termios.h>
 
 #define UP 1
 #define DOWN 2
@@ -76,6 +77,22 @@ void getInput(char* c){
 	*c = '$';
 }
 
+char get()
+{
+	struct termios oldattr, newattr;
+	char ch;
+	tcgetattr( STDIN_FILENO, &oldattr );
+	newattr = oldattr;
+	newattr.c_lflag &= ~( ICANON | ECHO); //knock down keybuffer
+	tcsetattr( STDIN_FILENO, TCSANOW, &newattr );
+	system("stty -echo"); //shell out to kill echo
+	//ch = getchar();
+	getInput(&ch);
+	system("stty echo");
+	tcsetattr( STDIN_FILENO, TCSANOW, &oldattr );
+	return ch;
+}
+
 void reflect_changes(){
 	int i;
 	for(i=0;i<=receive.num_changes;i++){
@@ -84,13 +101,14 @@ void reflect_changes(){
 }
 
 void display(){
+	printf("\033[2J\033[1;1H");
 	int i,j;
 	printf("Nick\t\tPoints\n");
 	for(i=0;i<=receive.num_players;i++){
 		printf("%s\t\t%d\n",receive.clients[i].name,receive.clients[i].points);	
 	}
 	printf("\n\n");
-	for(i=0;i<DIMENSION;i++){
+	for(i=0;i<30;i++){
 		for(j=0;j<DIMENSION;j++){
 			if(matrix[i][j].type==P1){
 			printf("%s%d",KRED,matrix[i][j].type);
@@ -174,10 +192,10 @@ int main()
 		if(c == 'y') buffer[1] = '1';
 		else buffer[1] = '2';
 		buffer[2] = '\0';
-		sendto(socketfd,&buffer,1024,0,(struct sockaddr*)&serverAddr,addr_size);
+		sendto(socketfd,buffer,1024,0,(struct sockaddr*)&serverAddr,addr_size);
 	}
 	
-	n = recvfrom(socketfd,&matrix,sizeof(matrix),0,(struct sockaddr*)&serverAddr,&addr_size);
+	n = recvfrom(socketfd,matrix,sizeof(matrix),0,(struct sockaddr*)&serverAddr,&addr_size);
 	printf("%d\n",n);
 	n = recvfrom(socketfd,&receive,sizeof(SEND),0,(struct sockaddr*)&serverAddr,&addr_size);
 	printf("%d\n",receive.num_players);
@@ -186,20 +204,22 @@ int main()
 	buffer[2] = '\0';
 	while(1){ // Game starts
 		buffer[0] = '$';
-		getInput(&buffer[0]);
+		//getInput(&buffer[0]);
+		buffer[0] = get();
 		if(buffer[0] == '*')
 			break;
-		if(buffer[0] == ' ' || buffer[0] == 'D' || buffer[0] == 'S' || buffer[0] == 'A' || buffer[0] == 'W'){
+		if(buffer[0] == ' ' || buffer[0] == 'd' || buffer[0] == 's' || buffer[0] == 'a' || buffer[0] == 'w'){
 			sendto(socketfd,buffer,1024,0,(struct sockaddr*)&serverAddr,addr_size);
 		}
 		while(1){
-			n = recvfrom(socketfd,&receive,sizeof(receive),MSG_DONTWAIT,(struct sockaddr*)&serverAddr,&addr_size);
+			//n = recvfrom(socketfd,&receive,sizeof(receive),MSG_DONTWAIT,(struct sockaddr*)&serverAddr,&addr_size);
+			n = recvfrom(socketfd,matrix,sizeof(matrix),MSG_DONTWAIT,(struct sockaddr*)&serverAddr,&addr_size);
 			if(n > 0){
 				int i;
-				for(i=0;i<=receive.num_changes;i++){
-					printf("%d %d %d\n",receive.changes[i].row,receive.changes[i].col,receive.changes[i].cell.type);
-				}
-				reflect_changes();
+				//for(i=0;i<=receive.num_changes;i++){
+				//	printf("%d %d %d\n",receive.changes[i].row,receive.changes[i].col,receive.changes[i].cell.type);
+				//}
+				//reflect_changes();
 				display();
 			}
 			else break;
