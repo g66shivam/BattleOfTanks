@@ -12,7 +12,7 @@
 #define DOWN 2
 #define RIGHT 3
 #define LEFT 4
-#define MAX_PLAYERS 4
+#define MAX_PLAYERS 10
 #define P1 1
 #define P2 2
 #define P3 3
@@ -45,24 +45,22 @@ typedef struct {
 	int direction;
 }CELL;
 
-CELL matrix[DIMENSION][DIMENSION];
-
 typedef struct {
 	int row,col;
 	CELL cell;
 }DATA;
 
 typedef struct {
-	CLIENT clients[5];
-	DATA changes[1024];
+	CLIENT clients[MAX_PLAYERS];
+	CELL matrix[DIMENSION][DIMENSION];
 	int num_players;
-	int num_changes;
 	char msg[1024];
 }SEND;
 
 SEND receive;
 
 char buffer[1024];
+int myIndex,isAlive;
 
 void getInput(char* c){
 	struct pollfd mypoll = { STDIN_FILENO, POLLIN|POLLPRI };
@@ -93,30 +91,23 @@ char get()
 	return ch;
 }
 
-void reflect_changes(){
-	int i;
-	for(i=0;i<=receive.num_changes;i++){
-		matrix[receive.changes[i].row][receive.changes[i].col] = receive.changes[i].cell;
-	}
-}
-
 void display(){
 	printf("\033[2J\033[1;1H");
 	int i,j;
-	printf("Nick\t\tPoints\n");
+	printf("Nick\t\tPoints\t\t\t Your health : %d\n",receive.clients[myIndex].health);
 	for(i=0;i<=receive.num_players;i++){
 		printf("%s\t\t%d\n",receive.clients[i].name,receive.clients[i].points);	
 	}
 	printf("\n\n");
 	for(i=0;i<30;i++){
 		for(j=0;j<DIMENSION;j++){
-			if(matrix[i][j].type==P1){
-			printf("%s%d",KRED,matrix[i][j].type);
+			if(receive.matrix[i][j].type==P1){
+			printf("%s%d",KRED,receive.matrix[i][j].type);
 			}	
-			else if(matrix[i][j].type==BRICK)
-			printf("%s%d",KYEL,matrix[i][j].type);
+			else if(receive.matrix[i][j].type==BRICK)
+			printf("%s%d",KYEL,receive.matrix[i][j].type);
 			else
-			printf("%s%d",KWHT,matrix[i][j].type);
+			printf("%s%d",KWHT,receive.matrix[i][j].type);
 		}
 		printf("\n");
 	}
@@ -142,7 +133,7 @@ int main()
 	memset((char *)&serverAddr,0,sizeof(serverAddr));
 	serverAddr.sin_family = AF_INET;
 	serverAddr.sin_port = htons(9000);
-	serverAddr.sin_addr.s_addr = inet_addr("172.17.47.15");
+	serverAddr.sin_addr.s_addr = inet_addr("172.17.46.242");
 
 	addr_size = sizeof(serverAddr);
 	memset(buffer,0, 1024);
@@ -151,10 +142,13 @@ int main()
 	printf("Enter the display name \n");
 	buffer[0] = '*';
 	scanf("%s",buffer+1);
+	if(buffer[1] == '*') 
+		return 0;
 	sendto(socketfd,&buffer,1024,0,(struct sockaddr*)&serverAddr,addr_size);
 	int n;
 
-	while(1){
+	while(1){ // Ready and not ready block
+
 		n = recvfrom(socketfd,buffer,1024,MSG_DONTWAIT,(struct sockaddr*)&serverAddr,&addr_size);
 		//printf("%s %d \n",buffer,n);
 		int flag = 0;
@@ -195,31 +189,27 @@ int main()
 		sendto(socketfd,buffer,1024,0,(struct sockaddr*)&serverAddr,addr_size);
 	}
 	
-	n = recvfrom(socketfd,matrix,sizeof(matrix),0,(struct sockaddr*)&serverAddr,&addr_size);
-	printf("%d\n",n);
 	n = recvfrom(socketfd,&receive,sizeof(SEND),0,(struct sockaddr*)&serverAddr,&addr_size);
-	printf("%d\n",receive.num_players);
+	if(n > 0){ // sending acknowledgment
+		myIndex = receive.msg[0] - '0';
+		buffer[0] = '$'; buffer[1] = '\0';
+		sendto(socketfd,buffer,1024,0,(struct sockaddr*)&serverAddr,addr_size);
+	}
 	display();
 	buffer[1] = '*';
 	buffer[2] = '\0';
+	isAlive = 1;
 	while(1){ // Game starts
 		buffer[0] = '$';
-		//getInput(&buffer[0]);
 		buffer[0] = get();
 		if(buffer[0] == '*')
 			break;
-		if(buffer[0] == ' ' || buffer[0] == 'd' || buffer[0] == 's' || buffer[0] == 'a' || buffer[0] == 'w'){
+		if( isAlive && (buffer[0] == ' ' || buffer[0] == 'd' || buffer[0] == 's' || buffer[0] == 'a' || buffer[0] == 'w')){
 			sendto(socketfd,buffer,1024,0,(struct sockaddr*)&serverAddr,addr_size);
 		}
 		while(1){
-			//n = recvfrom(socketfd,&receive,sizeof(receive),MSG_DONTWAIT,(struct sockaddr*)&serverAddr,&addr_size);
-			n = recvfrom(socketfd,matrix,sizeof(matrix),MSG_DONTWAIT,(struct sockaddr*)&serverAddr,&addr_size);
+			n = recvfrom(socketfd,&receive,sizeof(SEND),MSG_DONTWAIT,(struct sockaddr*)&serverAddr,&addr_size);
 			if(n > 0){
-				int i;
-				//for(i=0;i<=receive.num_changes;i++){
-				//	printf("%d %d %d\n",receive.changes[i].row,receive.changes[i].col,receive.changes[i].cell.type);
-				//}
-				//reflect_changes();
 				display();
 			}
 			else break;
