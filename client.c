@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <termios.h>
 
+#define EXITED 5
 #define UP 1
 #define DOWN 2
 #define RIGHT 3
@@ -26,11 +27,13 @@
 #define KNRM  "\x1B[0m"
 #define KRED  "\x1B[31m"
 #define KGRN  "\x1B[32m"
-#define KYEL  "\x1B[33m"
+#define KYEL  "\x1B[44m"
 #define KBLU  "\x1B[34m"
 #define KMAG  "\x1B[35m"
 #define KCYN  "\x1B[36m"
-#define KWHT  "\x1B[37m"
+#define KWHT  "\x1B[42m"
+#define KWHT1  "\x1B[49m"
+#define kwht  "\x1B[37m"
 
 typedef struct {
 	char name[20];
@@ -136,11 +139,11 @@ void print_matrix(int i, int j){
 	printf("%s%c",KBLU,'>');
 	}
 	else if(receive.matrix[i][j].type==BRICK)
-	printf("%s%c",KYEL,'|');
+	printf("%s%c",KYEL,' ');
 	else if(receive.matrix[i][j].type==BULLET)
 	printf("%s%c",KCYN,'-');
 	else
-	printf("%s%c",KWHT,'*');
+	printf("%s%c",KWHT1,' ');
 
 }
 
@@ -152,9 +155,10 @@ void display(){
 	printf("Nick\t\tPoints\t\t\t Your health : %d\n",receive.clients[myIndex].health);
 	printf("Sequence no. %d\n",curSeq);
 	for(i=0;i<=receive.num_players;i++){
+		if(receive.clients[i].flag == EXITED) continue;
 		printf("%s\t\t%d\n",receive.clients[i].name,receive.clients[i].points);	
 	}
-	printf("\n\n");
+	printf("%s\n\n",KWHT1);
 	for(i=0;i<DIMENSION2;i++){
 		for(j=0;j<DIMENSION1;j++){
 			if( receive.matrix[i][j].type == myIndex+1 ){
@@ -162,15 +166,17 @@ void display(){
 			}
 				
 			print_matrix(i,j);
+			//printf("%s",KWHT);
 		}
-		printf("\n");
+		printf("%s\n",KWHT1);
 	}
+	printf("%s%s",KWHT1,kwht);
 	i = 0, j = 0;
 	while(j < 4){
 		while(receive.msg[i] != '*' && receive.msg[i] != '\0'){
 			printf("%c",receive.msg[i++]);
 		}
-		printf("\n");
+		printf("%s\n",KWHT1);
 		i++;
 		j++;
 	}
@@ -271,7 +277,7 @@ int main()
 		getInput(&buffer[0]);
 		if(buffer[0] == '*')
 			break;
-		if(counter >= 10 && isAlive && isValid(buffer[0])){
+		if(counter >= 8 && isAlive && isValid(buffer[0])){
 			counter = 0;
 			sendto(socketfd,buffer,1024,0,(struct sockaddr*)&serverAddr,addr_size);
 		}
@@ -293,6 +299,7 @@ int main()
 		}
 		if(gameEnd) break;
 	}
+	return 0;
 	memset(buffer,0,sizeof buffer);
 	printf("2");
 	while(buffer[0] != '$'){
@@ -301,7 +308,7 @@ int main()
 	}
 	n = recvfrom(socketfd,buffer,1024,MSG_DONTWAIT,(struct sockaddr*)&serverAddr,&addr_size);
 	char team = '$';
-	printf("%s",KWHT);
+	printf("%s",KWHT1);
 	printf("%s\n",buffer);
 	while(1){ // level 2 starting 
 		int flag = 0;
