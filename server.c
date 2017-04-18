@@ -23,6 +23,7 @@
 #define MAZES 10
 #define DIMENSION1 110
 #define DIMENSION2 40
+#define EXITED 5
 
 int dx[4] = {0,-1,0,1};// left,up, right, down
 int dy[4] = {-1,0,1,0};
@@ -480,7 +481,9 @@ void get_maze(){
 
 	int x,y;
 	for(int i=0;i<=sends.num_players;i++)
-	{	
+	{
+		//if(sends.clients[i].flag==EXITED)
+		//	continue;	
 		printf("reached here\n");
 		get_Pos(&x,&y);
 		printf("position of player %d %d",x,y);
@@ -534,6 +537,8 @@ int main()
 				//sendsing to all players
 				for(int i=0;i<=sends.num_players;i++)
 				{
+					//if(sends.clients[i].flag==EXITED)
+					//	continue;
 					printf("Name1 - %d\n",sends.num_players);
 					printf("Name1 - %s\n",(sends.clients[i]).name);
 					sendto(socketfd,buffer,1024,0,(struct sockaddr*)&((sends.clients[i]).address),addr_size);
@@ -552,6 +557,8 @@ int main()
 			//sendsing to all players
 			for(int i=0;i<=sends.num_players;i++)
 			{
+				//if(sends.clients[i].flag==EXITED)
+				//	continue;
 				printf("Name2 - %d\n",sends.num_players);
 				printf("Name2 - %s\n",(sends.clients[i]).name);
 				sendto(socketfd,buffer,1024,0,(struct sockaddr*)&((sends.clients[i]).address),addr_size);
@@ -563,7 +570,9 @@ int main()
 			printf("%d\n",t);
 			strcpy(buffer,"$"); 
 			for(int i=0;i<=sends.num_players;i++)
+			{
 				sendto(socketfd,buffer,1024,0,(struct sockaddr*)&((sends.clients[i]).address),addr_size);
+			}
 			break;
 		}	
 	}
@@ -585,7 +594,7 @@ int main()
 			int n = sendto(socketfd,&sends,sizeof(SEND),0,(struct sockaddr*)&((sends.clients[i]).address),addr_size);
 			printf("%d\n",n);
 			if(n>0)
-				printf("sending matrix---\n");
+				printf("sending matrix---\n");//
 			memset(buffer,'\0',sizeof(buffer));
 			recvfrom(socketfd,buffer,1024,MSG_DONTWAIT,(struct sockaddr*)&clientAddr,&addr_size);
 			if(buffer[0]=='$')
@@ -596,6 +605,7 @@ int main()
 		}
 		usleep(50000);
 	}
+
 	printf("done\n");
 	while(1)
 	{
@@ -651,7 +661,7 @@ int main()
 		//ADD A TIME LIMIT HERE
 		usleep(70000);
 		
-		if(sends.sqno==(prev-100) || global_changes!=-1)
+		if(sends.sqno==(prev-10) || global_changes!=-1)
 		{
 			for(int i=0;i<=sends.num_players;i++)
 			{
@@ -692,6 +702,10 @@ int main()
 		}
 	}
 
+	strcpy(buffer,"$");
+	for(int i=0;i<=sends.num_players;i++)
+		sendto(socketfd,buffer,1024,0,(struct sockaddr*)&((sends.clients[i]).address),addr_size);
+	
 	//NEXT LEVEL
 	//making evveryone not ready
 	for(int i=0;i<=sends.num_players;i++)
@@ -734,6 +748,7 @@ int main()
 		
 		if(t=all_ready())
 		{
+			printf("All ready\n");
 			printf("%d\n",t);
 			strcpy(buffer,"$"); 
 			for(int i=0;i<=sends.num_players;i++)
