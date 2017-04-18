@@ -21,8 +21,8 @@
 #define BLANK 0
 #define DIMENSION 80
 #define MAZES 10
-#define DIMENSION1 100
-#define DIMENSION2 50
+#define DIMENSION1 110
+#define DIMENSION2 40
 
 int dx[4] = {0,-1,0,1};// left,up, right, down
 int dy[4] = {-1,0,1,0};
@@ -457,13 +457,13 @@ void generate_maze(){
 	fill(0,20,24,10,30);
 	fill(0,10,40,20,24);
 	fill(0,4,8,35,45);
-	fill(0,4,8,DIMENSION1-40,DIMENSION1);
+	fill(0,4,8,DIMENSION1-30,DIMENSION1);
 	//fill(0,10,40,110,125);
 	fill(0,25,30,DIMENSION1-20,DIMENSION1);
 	//fill(0,72,76,40,44);
 	//fill(0,70,72,40,55);
 	//fill(0,70,72,70,80);
-	fill(0,41,44,55,80);
+	//fill(0,41,44,55,80);
 	fill(0,0,35,55,59);
 	fill(0,16,20,59,65);
 	fill(0,25,29,59,70);
@@ -571,7 +571,8 @@ int main()
 
 	get_maze();
 	sends.sqno = 100;
-	
+	int prev = sends.sqno;
+
 	while(!all_received())
 	{	
 		for(int i=0;i<=sends.num_players;i++)
@@ -650,7 +651,7 @@ int main()
 		//ADD A TIME LIMIT HERE
 		usleep(70000);
 		
-		if(global_changes!=-1)
+		if(sends.sqno==(prev-100) || global_changes!=-1)
 		{
 			for(int i=0;i<=sends.num_players;i++)
 			{
@@ -659,6 +660,7 @@ int main()
 			}
 			memset(sends.msg,'\0',1024);	
 			global_changes = -1;
+			prev = sends.sqno;
 		}
 
 		//LEVEL FINISH
