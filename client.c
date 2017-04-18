@@ -270,12 +270,12 @@ int main()
 			n = recvfrom(socketfd,&receive,sizeof(SEND),MSG_DONTWAIT,(struct sockaddr*)&serverAddr,&addr_size);
 			if(n > 0 && curSeq > receive.sqNo){
 				curSeq = receive.sqNo;
+				printf("%s\n",receive.msg);
 				if(receive.msg[0] == '*' && receive.msg[1] == '*' && receive.msg[2] == '*'){ // level 1 ends
+					printf("level1 ends!!\n");
 					gameEnd = 1;
 					buffer[0] = '$'; buffer[1] = '\0';
-					printf("Level 1 ends !!");
 					sendto(socketfd,buffer,1024,0,(struct sockaddr*)&serverAddr,addr_size);
-					printf("Level 1 ends !!");
 					break;
 				}
 				display();
@@ -284,9 +284,15 @@ int main()
 		}
 		if(gameEnd) break;
 	}
-	printf("Level 1 ends!!\n");
+	memset(buffer,0,sizeof buffer);
+	while(buffer[0] != '$'){
+		printf("2");
+		n = recvfrom(socketfd,buffer,1024,0,(struct sockaddr*)&serverAddr,&addr_size);
+	}
 	n = recvfrom(socketfd,buffer,1024,0,(struct sockaddr*)&serverAddr,&addr_size);
 	char team = '$';
+	printf("%s",KWHT);
+	printf("%s\n",buffer);
 	while(1){ // level 2 starting 
 		int flag = 0;
 		if(n > 0){
@@ -303,32 +309,33 @@ int main()
 					printf("\n\t\t\t\t");
 				else if(buffer[i] == '$'){
 					printf("\t\t\t\t");
-					if(buffer[i+1] == 1) printf("Ready\t\t\t\t");
-					else printf("Not Ready\t\t\t\t");
-					printf("%c Team \t\t\t\t",buffer[i+2]);
+					if(buffer[i+1] == 1) printf("Ready\t");
+					else printf("Not Ready\t");
+					printf("%c Team",buffer[i+2]);
 					i += 2;
 				}
 				else printf("%c",buffer[i]);
 				i++;
 			}
-			printf("\n");
+			printf("\n\n");
 		}
 		if(flag){
-			printf("\t\t\t\tWhich team do you want to join ?? (range 1-9).\n Are you ready for the game ?? (y or n) : format ex -> 2y \n");
+			printf("\t\t\t\tWhich team do you want to join ?? (range 1-9).\n\t\t\t\t Are you ready for the game ?? (y or n) : format ex -> y2 \n");
 		}
-		getInput(&team);
 		char c = '$'; 
+		//getInput(&team);
 		getInput(&c);
 		if(team == '*') break;
-		printf("\n");
 		if(c != 'y' && c != 'n'){
 			n = recvfrom(socketfd,buffer,1024,MSG_DONTWAIT,(struct sockaddr*)&serverAddr,&addr_size);
 			continue;
 		}
+		scanf("%c",&team);
 		buffer[0] = '*';
 		if(c == 'y') buffer[1] = '1';
 		else buffer[1] = '2';
-		buffer[2] = team;
+		buffer[2] = '2';
+		buffer[3] = '\0';
 		sendto(socketfd,buffer,1024,0,(struct sockaddr*)&serverAddr,addr_size);
 		n = recvfrom(socketfd,buffer,1024,MSG_DONTWAIT,(struct sockaddr*)&serverAddr,&addr_size);
 	}
