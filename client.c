@@ -314,10 +314,10 @@ int main()
 			printf("\n");
 		}
 		if(flag){
-			printf("\t\t\t\tWhich team do you want to join ?? (range 1-9). Are you ready for the game ?? (y or n) : format ex -> y/2 \n");
+			printf("\t\t\t\tWhich team do you want to join ?? (range 1-9).\n Are you ready for the game ?? (y or n) : format ex -> 2y \n");
 		}
 		getInput(&team);
-		char c; 
+		char c = '$'; 
 		getInput(&c);
 		if(team == '*') break;
 		printf("\n");
