@@ -334,7 +334,7 @@ int main()
 		buffer[0] = '*';
 		if(c == 'y') buffer[1] = '1';
 		else buffer[1] = '2';
-		buffer[2] = '2';
+		buffer[2] = team;
 		buffer[3] = '\0';
 		sendto(socketfd,buffer,1024,0,(struct sockaddr*)&serverAddr,addr_size);
 		n = recvfrom(socketfd,buffer,1024,MSG_DONTWAIT,(struct sockaddr*)&serverAddr,&addr_size);
