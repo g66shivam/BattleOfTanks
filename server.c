@@ -505,7 +505,7 @@ int main()
 	memset((char *)&serverAddr,0,sizeof(serverAddr));
 	serverAddr.sin_family = AF_INET;
 	serverAddr.sin_port = htons(9000);
-	serverAddr.sin_addr.s_addr = inet_addr("172.17.46.242");
+	serverAddr.sin_addr.s_addr = inet_addr("192.168.1.101");
 	bind(socketfd,(struct sockaddr *)&serverAddr,sizeof(serverAddr));
 	addr_size = sizeof(serverAddr);
 
@@ -587,8 +587,7 @@ int main()
 		for(int i=0;i<=sends.num_players;i++)
 		{
 			printf("printing i %d\n",i);
-			//sendto(socketfd,sends.matrix,sizeof(sends.matrix),0,(struct sockaddr*)&((sends.clients[i]).address),addr_size);
-			//memset(se,'\0',sizeof(buffer));
+			
 			sends.msg[0] = i+'0';
 			printf("%d\n",sends.msg[0]-'0');
 			int n = sendto(socketfd,&sends,sizeof(SEND),0,(struct sockaddr*)&((sends.clients[i]).address),addr_size);
@@ -596,11 +595,13 @@ int main()
 			if(n>0)
 				printf("sending matrix---\n");//
 			memset(buffer,'\0',sizeof(buffer));
-			recvfrom(socketfd,buffer,1024,MSG_DONTWAIT,(struct sockaddr*)&clientAddr,&addr_size);
-			if(buffer[0]=='$')
+			recvfrom(socketfd,buffer,1024,0,(struct sockaddr*)&clientAddr,&addr_size);
+		
+			if(strlen(buffer)==2 && buffer[0]=='$')
 			{
 				printf("received ackn'\n");
-				received[i] = 1;
+				received[buffer[1]-'0'] = 1;
+				printf("received ack from --> %d\n",buffer[1]-'0');
 			}
 		}
 		usleep(50000);
@@ -682,6 +683,8 @@ int main()
 			{	
 				for(int i=0;i<=sends.num_players;i++)
 				{	
+					if(received[i]==1)
+						continue;
 					strcpy(sends.msg,"***");
 					int n = sendto(socketfd,&sends,sizeof(SEND),0,(struct sockaddr*)&((sends.clients[i]).address),addr_size);
 					//int n = sendto(socketfd,buffer,1024,0,(struct sockaddr*)&((sends.clients[i]).address),addr_size);
@@ -690,10 +693,12 @@ int main()
 						printf("sent----------\n");
 					memset(buffer,'\0',sizeof(buffer));
 					recvfrom(socketfd,buffer,1024,MSG_DONTWAIT,(struct sockaddr*)&clientAddr,&addr_size);
-					if(buffer[0]=='$')
+					
+					if(strlen(buffer)==2 && buffer[0]=='$')
 					{
-						printf("received new ack\n");
-						received[i] = 1;
+						printf("received ackn'\n");
+						received[buffer[1]-'0'] = 1;
+						printf("received second ack from --> %d\n",buffer[1]-'0');
 					}
 				}
 			}
