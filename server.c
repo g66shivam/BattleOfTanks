@@ -25,8 +25,8 @@
 #define DIMENSION2 40
 #define EXITED 5
 
-int dx[4] = {0,-1,0,1};// left,up, right, down
-int dy[4] = {-1,0,1,0};
+int dx[5] = {0,-1,1,0,0};// left,up, right, down
+int dy[5] = {0,0,0,1,-1};
 int next_spawn[12];
 int global_changes = -1;
 
@@ -223,13 +223,13 @@ void get_Pos(int *x,int *y)// dummy_function,modify this function to get a rando
 int map_char_to_idx(char c)
 {
 	if(c=='a')
-		return 0;
+		return LEFT;
 	if(c=='w')
-		return 1;
+		return UP;
 	if(c=='d')
-		return 2;
+		return RIGHT;
 	if(c=='s')
-		return 3;
+		return DOWN;
 }
 
 void move_player(int player_idx,char c) //  not reassgined 100 power to dead player neither manipulated points
@@ -240,73 +240,72 @@ void move_player(int player_idx,char c) //  not reassgined 100 power to dead pla
 	int cy = cur.y;
 	int nx = cur.x+dx[idx];
 	int ny = cur.y+dy[idx];
-	//int change_pos = sends.num_changes;
 
-	if(sends.matrix[nx][ny].type == BLANK)
+	if(sends.matrix[cx][cy].direction!=idx)
 	{
-		sends.matrix[nx][ny].type = player_idx+1;// check
-		sends.matrix[nx][ny].direction = sends.matrix[cur.x][cur.y].direction;
-		sends.matrix[cur.x][cur.y].type = BLANK;
-		sends.matrix[cur.x][cur.y].direction  = -1;
-		cur.x = nx;
-		cur.y = ny;
-	}// BLANK
-	else if(sends.matrix[nx][ny].type == BULLETS)
+		sends.matrix[cx][cy].direction = idx;
+		global_changes++;
+	}
+	else
 	{
-		cur.health = max(0,cur.health-20);
-		if(cur.health > 0)// alive same as blank cell
+		if(sends.matrix[nx][ny].type == BLANK)
 		{
-			//**DELETE BULLET OTHERWISE BULLET WILL PASS THROUGH THE PERSON
-			sends.matrix[nx][ny].type = player_idx+1;
+			sends.matrix[nx][ny].type = player_idx+1;// check
 			sends.matrix[nx][ny].direction = sends.matrix[cur.x][cur.y].direction;
 			sends.matrix[cur.x][cur.y].type = BLANK;
 			sends.matrix[cur.x][cur.y].direction  = -1;
 			cur.x = nx;
 			cur.y = ny;
-		}
-		else // dead
+			global_changes++;
+		}// BLANK
+		else if(sends.matrix[nx][ny].type == BULLETS)
 		{
-			//**DELETE BULLET OTHERWISE BULLET WILL PASS THROUGH THE PERSON
-			sends.matrix[nx][ny].type = BLANK;
-			sends.matrix[nx][ny].direction = -1;
-			sends.matrix[cur.x][cur.y].type = BLANK;
-			sends.matrix[cur.x][cur.y].direction  = -1;
-			int nposx;int nposy;
-			get_Pos(&nposx,&nposy);
-			cur.x = nposx;
-			cur.y = nposy;
-			//**NEW PLAYER ASSIGN ALL THE VARIABLE AND ADD THIS PLAYER TO CHANGES
-		}
-	}// BULLET
-	// fill 
-	/*++change_pos;
-	sends.changes[change_pos].row = cx;
-	sends.changes[change_pos].col = cy;
-	sends.changes[change_pos].cell = sends.matrix[cx][cy];
-	++change_pos;
-	sends.changes[change_pos].row = nx;
-	sends.changes[change_pos].col = ny;
-	sends.changes[change_pos].cell = sends.matrix[nx][ny];
-	sends.num_changes = change_pos;
-	// while leaving reassign cur's everything to CLIENT[player_idx] to reflect changes*/
-	sends.clients[player_idx] = cur;
-	global_changes++;
+			/*cur.health = max(0,cur.health-20);
+			if(cur.health > 0)// alive same as blank cell
+			{
+				//**DELETE BULLET OTHERWISE BULLET WILL PASS THROUGH THE PERSON
+				sends.matrix[nx][ny].type = player_idx+1;
+				sends.matrix[nx][ny].direction = sends.matrix[cur.x][cur.y].direction;
+				sends.matrix[cur.x][cur.y].type = BLANK;
+				sends.matrix[cur.x][cur.y].direction  = -1;
+				cur.x = nx;
+				cur.y = ny;
+			}
+			else // dead
+			{
+				//**DELETE BULLET OTHERWISE BULLET WILL PASS THROUGH THE PERSON
+				sends.matrix[nx][ny].type = BLANK;
+				sends.matrix[nx][ny].direction = -1;
+				sends.matrix[cur.x][cur.y].type = BLANK;
+				sends.matrix[cur.x][cur.y].direction  = -1;
+				int nposx;int nposy;
+				get_Pos(&nposx,&nposy);
+				cur.x = nposx;
+				cur.y = nposy;
+				//**NEW PLAYER ASSIGN ALL THE VARIABLE AND ADD THIS PLAYER TO CHANGES
+			}*/
+		}// BULLET
+		sends.clients[player_idx] = cur;
+		//global_changes++;
+	}
 }
 
 int delete_or_not(BULLET *bul) // reassgined 100 health to dead player but not increases points of killer
 {
 	printf("New bullet\n");
+	
 	int ret = 0;
 	int dir = bul->dir;
 	int nx = bul->x;
 	int ny = bul->y;
-	if(dir == 1)//u
+
+	if(dir == UP)//u
 		nx--;
-	if(dir == 2)//d
+	if(dir == DOWN)//d
 		nx++;
-	if(dir == 3)//r
+	if(dir == RIGHT)//r
 		ny++;
-	if(dir == 4)//l
+	if(dir == LEFT)//l
 		ny--;
 	//int cpos = sends.num_changes;
 	if(sends.matrix[nx][ny].type == BRICK)
@@ -366,7 +365,7 @@ int delete_or_not(BULLET *bul) // reassgined 100 health to dead player but not i
 			cur.health = 100;
 			sends.matrix[nx][ny].type = BLANK;
 			sends.matrix[nx][ny].direction = -1;
-			next_spawn[player_idx] = sends.sqno-10;
+			next_spawn[player_idx] = sends.sqno-100;
 			global_changes++;
 			/*cpos++;
 			sends.changes[cpos].row = nx;
@@ -510,6 +509,7 @@ int main()
 	addr_size = sizeof(serverAddr);
 
 	memset(buffer,'\0',sizeof(buffer));
+	memset(next_spawn,-1,sizeof(next_spawn));
 	//memset(serverAddr.sin_zero, '\0', sizeof serverAddr.sin_zero);
 	
 	generate_maze();
@@ -579,7 +579,7 @@ int main()
 	printf("out\n");
 
 	get_maze();
-	sends.sqno = 100;
+	sends.sqno = 10000;
 	int prev = sends.sqno;
 
 	while(!all_received())
@@ -603,6 +603,9 @@ int main()
 				received[buffer[1]-'0'] = 1;
 				printf("received ack from --> %d\n",buffer[1]-'0');
 			}
+
+			if(all_received())
+				break;	
 		}
 		usleep(50000);
 	}
@@ -629,15 +632,21 @@ int main()
 				{
 					int x = (sends.clients[t]).x;
 					int y = (sends.clients[t]).y;
-					//keep direction sends.matrix[x][y].direction
-					BULLET *temp = make_bullet(x+1,y+1,RIGHT,t);
-					printf("in bullet %d %d %s\n",x+1,y+1,(sends.clients[t]).name);
-					if(bullet==NULL)
-						bullet = temp;
-					else
+
+					int nx = x + dx[sends.matrix[x][y].direction];
+					int ny = y + dy[sends.matrix[x][y].direction];
+					
+					if(sends.matrix[nx][ny].type!=BRICK)
 					{
-						temp->next = bullet;
-						bullet = temp;
+						BULLET *temp = make_bullet(nx,ny,sends.matrix[x][y].direction,t);
+						printf("in bullet %d %d %s\n",nx,ny,(sends.clients[t]).name);
+						if(bullet==NULL)
+							bullet = temp;
+						else
+						{
+							temp->next = bullet;
+							bullet = temp;
+						}
 					}
 				}
 				else
@@ -662,7 +671,7 @@ int main()
 		//ADD A TIME LIMIT HERE
 		usleep(70000);
 		
-		if(sends.sqno==(prev-10) || global_changes!=-1)
+		if(sends.sqno==(prev-100) || global_changes!=-1)
 		{
 			for(int i=0;i<=sends.num_players;i++)
 			{
@@ -682,7 +691,9 @@ int main()
 			while(!all_received())
 			{	
 				for(int i=0;i<=sends.num_players;i++)
-				{	
+				{
+					//if(received[i]==1)
+					//	continue;	
 					strcpy(sends.msg,"***");
 					int n = sendto(socketfd,&sends,sizeof(SEND),0,(struct sockaddr*)&((sends.clients[i]).address),addr_size);
 					//int n = sendto(socketfd,buffer,1024,0,(struct sockaddr*)&((sends.clients[i]).address),addr_size);
@@ -696,8 +707,10 @@ int main()
 					{
 						printf("received ackn'\n");
 						received[buffer[1]-'0'] = 1;
-						printf("received second ack from --> %d\n",buffer[1]-'0');
+						printf("received second ack from --> %s\n",sends.clients[buffer[1]-'0'].name);
 					}
+					if(all_received())
+						break;	
 				}
 			}
 			printf("LEVEL ending\n");
