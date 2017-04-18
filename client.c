@@ -248,7 +248,7 @@ int main()
 		myIndex = receive.msg[0] - '0';
 		printf("Received matrix %d %d %d\n",myIndex,receive.num_players,n);
 		curSeq = receive.sqNo;
-		buffer[0] = '$'; buffer[1] = '\0';
+		buffer[0] = '$'; buffer[1] = myIndex + '0'; buffer[2] = '\0';
 		sendto(socketfd,buffer,1024,0,(struct sockaddr*)&serverAddr,addr_size);
 		printf("ACK sent %d\n",curSeq);
 	}
@@ -274,7 +274,7 @@ int main()
 				if(receive.msg[0] == '*' && receive.msg[1] == '*' && receive.msg[2] == '*'){ // level 1 ends
 					printf("level1 ends!!\n");
 					gameEnd = 1;
-					buffer[0] = '$'; buffer[1] = '\0';
+					buffer[0] = '$'; buffer[1] = '0' + myIndex; buffer[2] = '\0';
 					sendto(socketfd,buffer,1024,0,(struct sockaddr*)&serverAddr,addr_size);
 					break;
 				}
@@ -289,7 +289,7 @@ int main()
 		printf("2");
 		n = recvfrom(socketfd,buffer,1024,0,(struct sockaddr*)&serverAddr,&addr_size);
 	}
-	n = recvfrom(socketfd,buffer,1024,0,(struct sockaddr*)&serverAddr,&addr_size);
+	n = recvfrom(socketfd,buffer,1024,MSG_DONTWAIT,(struct sockaddr*)&serverAddr,&addr_size);
 	char team = '$';
 	printf("%s",KWHT);
 	printf("%s\n",buffer);
@@ -297,7 +297,7 @@ int main()
 		int flag = 0;
 		if(n > 0){
 			if(buffer[0] == '$'){
-				printf("\t\t\t\tLevel 2 is about to start !! \n");
+				printf("\n\t\t\t\tLevel 2 is about to start !! \n");
 				break;
 			}
 			flag = 1;
