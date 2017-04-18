@@ -186,7 +186,7 @@ int main()
 	memset((char *)&serverAddr,0,sizeof(serverAddr));
 	serverAddr.sin_family = AF_INET;
 	serverAddr.sin_port = htons(9000);
-	serverAddr.sin_addr.s_addr = inet_addr("172.17.46.242");
+	serverAddr.sin_addr.s_addr = inet_addr("192.168.1.101");
 
 	addr_size = sizeof(serverAddr);
 	memset(buffer,0, 1024);
@@ -268,7 +268,7 @@ int main()
 		}
 		while(1){
 			n = recvfrom(socketfd,&receive,sizeof(SEND),MSG_DONTWAIT,(struct sockaddr*)&serverAddr,&addr_size);
-			if(n > 0 && curSeq > receive.sqNo){
+			if(n > 0 && curSeq >= receive.sqNo){
 				curSeq = receive.sqNo;
 				printf("%s\n",receive.msg);
 				if(receive.msg[0] == '*' && receive.msg[1] == '*' && receive.msg[2] == '*'){ // level 1 ends
