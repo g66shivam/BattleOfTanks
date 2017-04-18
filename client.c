@@ -148,6 +148,7 @@ void display(){
 	isAlive = 0;
 	printf("\033[2J\033[1;1H");
 	int i,j;
+	printf("\t\t\t Time Remaining : %d\n",receive.sqNo/10);
 	printf("Nick\t\tPoints\t\t\t Your health : %d\n",receive.clients[myIndex].health);
 	printf("Sequence no. %d\n",curSeq);
 	for(i=0;i<=receive.num_players;i++){
@@ -173,6 +174,12 @@ void display(){
 		i++;
 		j++;
 	}
+}
+
+int isValid(char c){
+	if(c == ' ' || c == 'd' || c == 's' || c == 'a' || c == 'w' || c == 'p' || c == 'o') 
+		return 1;
+	return 0;
 }
 
 int main()
@@ -256,14 +263,16 @@ int main()
 	buffer[1] = '*';
 	buffer[2] = '\0';
 	isAlive = 1;
-	int gameEnd = 0;
+	int gameEnd = 0 , counter = 0;
 	while(1){ // Game starts
+		counter++;
 		buffer[0] = '$';
 		//buffer[0] = get();
 		getInput(&buffer[0]);
 		if(buffer[0] == '*')
 			break;
-		if( isAlive && (buffer[0] == ' ' || buffer[0] == 'd' || buffer[0] == 's' || buffer[0] == 'a' || buffer[0] == 'w')){
+		if(counter >= 10 && isAlive && isValid(buffer[0])){
+			counter = 0;
 			sendto(socketfd,buffer,1024,0,(struct sockaddr*)&serverAddr,addr_size);
 		}
 		while(1){
@@ -285,6 +294,7 @@ int main()
 		if(gameEnd) break;
 	}
 	memset(buffer,0,sizeof buffer);
+	printf("2");
 	while(buffer[0] != '$'){
 		printf("2");
 		n = recvfrom(socketfd,buffer,1024,0,(struct sockaddr*)&serverAddr,&addr_size);
@@ -308,7 +318,7 @@ int main()
 				if(buffer[i] == '*')									
 					printf("\n\t\t\t\t");
 				else if(buffer[i] == '$'){
-					printf("\t\t\t\t");
+					printf("\t");
 					if(buffer[i+1] == 1) printf("Ready\t");
 					else printf("Not Ready\t");
 					printf("%c Team",buffer[i+2]);
@@ -323,7 +333,6 @@ int main()
 			printf("\t\t\t\tWhich team do you want to join ?? (range 1-9).\n\t\t\t\t Are you ready for the game ?? (y or n) : format ex -> y2 \n");
 		}
 		char c = '$'; 
-		//getInput(&team);
 		getInput(&c);
 		if(team == '*') break;
 		if(c != 'y' && c != 'n'){
