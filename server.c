@@ -24,6 +24,7 @@
 #define DIMENSION1 110
 #define DIMENSION2 40
 #define EXITED 5
+#define PAUSED 6
 
 int dx[5] = {0,-1,1,0,0};// left,up, right, down
 int dy[5] = {0,0,0,1,-1};
@@ -144,9 +145,9 @@ void make_player(struct sockaddr_in clientAddr)
 void respawn()
 {
 	int i;
-	for (i = 0; i < sends.num_players; ++i)
+	for (i = 0;i<=sends.num_players; ++i)
 	{
-		if(next_spawn[i] == sends.sqno)
+		if(next_spawn[i] == sends.sqno && sends.clients[i].flag!=EXITED)
 		{
 			sends.matrix[sends.clients[i].x][sends.clients[i].y].type = i+1;
 			sends.matrix[sends.clients[i].x][sends.clients[i].y].direction = DOWN;
@@ -160,6 +161,9 @@ void get_players_list()
 	int ctr = 0;
 	for(int i=0;i<=sends.num_players;i++)
 	{
+		if(sends.clients[i].flag==EXITED)
+			continue;
+
 		buffer[ctr] = '*';
 		strcpy(buffer+ctr+1,(sends.clients[i]).name);
 		ctr+=strlen((sends.clients[i]).name)+1;
@@ -177,6 +181,8 @@ void get_team_list()
 	int ctr = 0;
 	for(int i=0;i<=sends.num_players;i++)
 	{
+		if(sends.clients[i].flag==EXITED)
+			continue;
 		buffer[ctr] = '*';
 		strcpy(buffer+ctr+1,(sends.clients[i]).name);
 		ctr+=strlen((sends.clients[i]).name)+1;
@@ -194,6 +200,8 @@ int all_ready()
 {
 	for(int i=0;i<=sends.num_players;i++)
 	{
+		if(sends.clients[i].flag==EXITED)
+			continue;
 		if((sends.clients[i]).flag==2)
 			return 0;
 	}
@@ -204,6 +212,8 @@ int all_received()
 {
 	for(int i=0;i<=sends.num_players;i++)
 	{
+		if(sends.clients[i].flag==EXITED)
+			continue;
 		if(received[i]==0)
 			return 0;
 	}
@@ -353,11 +363,14 @@ int delete_or_not(BULLET *bul) // reassgined 100 health to dead player but not i
 		CLIENT cur = sends.clients[player_idx];
 		if(cur.health > 20)// alive netx is same bullet goes off 
 		{
-			cur.health-=20;
+			if(cur.flag!=PAUSED)
+				cur.health-=20;
 		}
-		else // he'll be 1.5
+		else if(cur.flag!=PAUSED)// he'll be 1.5
 		{
 			//**CREATING NEW PLAYER ASSIGN ALL VARIABLES ADD NEW PLAYER TO CHANGES
+			int killer = bul->p_num;
+			sends.clients[killer].points += 100;
 			int nposx,nposy;
 			get_Pos(&nposx,&nposy);
 			cur.x = nposx;
@@ -481,6 +494,8 @@ void get_maze(){
 	int x,y;
 	for(int i=0;i<=sends.num_players;i++)
 	{
+		if(sends.clients[i].flag==EXITED)
+			continue;
 		//if(sends.clients[i].flag==EXITED)
 		//	continue;	
 		printf("reached here\n");
@@ -537,8 +552,8 @@ int main()
 				//sendsing to all players
 				for(int i=0;i<=sends.num_players;i++)
 				{
-					//if(sends.clients[i].flag==EXITED)
-					//	continue;
+					if(sends.clients[i].flag==EXITED)
+						continue;
 					printf("Name1 - %d\n",sends.num_players);
 					printf("Name1 - %s\n",(sends.clients[i]).name);
 					sendto(socketfd,buffer,1024,0,(struct sockaddr*)&((sends.clients[i]).address),addr_size);
@@ -557,8 +572,8 @@ int main()
 			//sendsing to all players
 			for(int i=0;i<=sends.num_players;i++)
 			{
-				//if(sends.clients[i].flag==EXITED)
-				//	continue;
+				if(sends.clients[i].flag==EXITED)
+					continue;
 				printf("Name2 - %d\n",sends.num_players);
 				printf("Name2 - %s\n",(sends.clients[i]).name);
 				sendto(socketfd,buffer,1024,0,(struct sockaddr*)&((sends.clients[i]).address),addr_size);
@@ -571,6 +586,8 @@ int main()
 			strcpy(buffer,"$"); 
 			for(int i=0;i<=sends.num_players;i++)
 			{
+				if(sends.clients[i].flag==EXITED)
+					continue;
 				sendto(socketfd,buffer,1024,0,(struct sockaddr*)&((sends.clients[i]).address),addr_size);
 			}
 			break;
@@ -586,6 +603,8 @@ int main()
 	{	
 		for(int i=0;i<=sends.num_players;i++)
 		{
+			if(sends.clients[i].flag==EXITED)
+				continue;
 			printf("printing i %d\n",i);
 			
 			sends.msg[0] = i+'0';
@@ -626,7 +645,21 @@ int main()
 				continue;
 			}
 
-			if(strlen(buffer)==2 && buffer[1]=='*')
+			if(strlen(buffer)==2 && buffer[0]=='p' && buffer[1]=='*')
+			{
+				sends.clients[t].flag = PAUSED;
+				sends.clients[t].points-=20;
+			}
+			else if(strlen(buffer)==2 && buffer[0]=='o' && buffer[1]=='*')
+			{
+				sends.clients[t].flag = EXITED;
+				int curx = sends.clients[t].x;
+				int cury = sends.clients[t].y;
+				sends.matrix[curx][cury].type = BLANK;
+				sends.matrix[curx][cury].direction = -1;
+				global_changes++;
+			}
+			else if(strlen(buffer)==2 && buffer[1]=='*')
 			{
 				if(buffer[0]==' ')
 				{
@@ -636,7 +669,7 @@ int main()
 					int nx = x + dx[sends.matrix[x][y].direction];
 					int ny = y + dy[sends.matrix[x][y].direction];
 					
-					if(sends.matrix[nx][ny].type!=BRICK)
+					if(sends.matrix[nx][ny].type==BLANK)
 					{
 						BULLET *temp = make_bullet(nx,ny,sends.matrix[x][y].direction,t);
 						printf("in bullet %d %d %s\n",nx,ny,(sends.clients[t]).name);
@@ -650,16 +683,20 @@ int main()
 					}
 				}
 				else
+				{
+					sends.clients[t].flag = 1;
 					move_player(t,buffer[0]);
+				}
 			}
 			else
 			{
 				int n = strlen(sends.msg);
 				sends.msg[n] = '*';
 				n++;
+				sends.msg[n] = '\0';
 				char str[100] = {"Invalid input by "};
 				strcat(str,(sends.clients[t]).name);
-				strcpy(sends.msg+n,str);
+				strcat(sends.msg,str);
 			}
 			memset(buffer,'\0',sizeof(buffer));
 		}
@@ -671,10 +708,12 @@ int main()
 		//ADD A TIME LIMIT HERE
 		usleep(70000);
 		
-		if(sends.sqno==(prev-100) || global_changes!=-1)
+		if(sends.sqno==(prev-10) || global_changes!=-1)
 		{
 			for(int i=0;i<=sends.num_players;i++)
 			{
+				if(sends.clients[i].flag==EXITED)
+					continue;
 				sendto(socketfd,&sends,sizeof(SEND),0,(struct sockaddr*)&((sends.clients[i]).address),addr_size);
 				//sendto(socketfd,sends.matrix,sizeof(sends.matrix),0,(struct sockaddr*)&((sends.clients[i]).address),addr_size);
 			}
@@ -692,6 +731,8 @@ int main()
 			{	
 				for(int i=0;i<=sends.num_players;i++)
 				{
+					if(sends.clients[i].flag==EXITED)
+						continue;
 					//if(received[i]==1)
 					//	continue;	
 					strcpy(sends.msg,"***");
@@ -720,18 +761,29 @@ int main()
 
 	strcpy(buffer,"$");
 	for(int i=0;i<=sends.num_players;i++)
+	{
+		if(sends.clients[i].flag==EXITED)
+			continue;
 		sendto(socketfd,buffer,1024,0,(struct sockaddr*)&((sends.clients[i]).address),addr_size);
+	}
 	
 	//NEXT LEVEL
 	//making evveryone not ready
 	for(int i=0;i<=sends.num_players;i++)
+	{	
+		if(sends.clients[i].flag==EXITED)
+			continue;
 		(sends.clients[i]).flag = 2;
+	}
 	//sleep(1);
 	get_team_list();
 	printf("team list %s\n",buffer);
 	for(int i=0;i<=sends.num_players;i++)
+	{
+		if(sends.clients[i].flag==EXITED)
+			continue;
 		sendto(socketfd,buffer,1024,0,(struct sockaddr*)&((sends.clients[i]).address),addr_size);
-		//sendto(socketfd,buffer,1024,0,(struct sockaddr*)&clientAddr,addr_size);
+	}	//sendto(socketfd,buffer,1024,0,(struct sockaddr*)&clientAddr,addr_size);
 	int t;	
 	while(1)
 	{	
@@ -753,8 +805,11 @@ int main()
 				get_team_list();
 				printf("team list %s\n",buffer);
 				for(int i=0;i<=sends.num_players;i++)
+				{
+					if(sends.clients[i].flag==EXITED)
+						continue;
 					sendto(socketfd,buffer,1024,0,(struct sockaddr*)&((sends.clients[i]).address),addr_size);
-					//sendto(socketfd,buffer,1024,0,(struct sockaddr*)&clientAddr,addr_size);
+				}	//sendto(socketfd,buffer,1024,0,(struct sockaddr*)&clientAddr,addr_size);
 			}
 			else
 				printf("in else\n");	
@@ -768,7 +823,11 @@ int main()
 			printf("%d\n",t);
 			strcpy(buffer,"$"); 
 			for(int i=0;i<=sends.num_players;i++)
+			{
+				if(sends.clients[i].flag==EXITED)
+					continue;
 				sendto(socketfd,buffer,1024,0,(struct sockaddr*)&((sends.clients[i]).address),addr_size);
+			}
 			break;	
 		}	
 	}
