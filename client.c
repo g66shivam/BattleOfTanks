@@ -319,7 +319,11 @@ int main()
 		}
 		if(gameEnd) break;
 	}
+<<<<<<< HEAD
 
+=======
+	//return 0;
+>>>>>>> 82dc70f226119491c3ec55337d6e8b2dc22ca5e1
 	memset(buffer,0,sizeof buffer);
 	printf("2");
 	while(buffer[0] != '$'){

@@ -1,3 +1,4 @@
+
 #include <stdio.h>
 #include <malloc.h>
 #include <sys/socket.h>
@@ -18,6 +19,7 @@
 #define P4 4
 #define BULLETS 11
 #define BRICK 12
+#define GRENADE 13
 #define BLANK 0
 #define DIMENSION 80
 #define MAZES 10
@@ -28,7 +30,12 @@
 
 int dx[5] = {0,-1,1,0,0};// left,up, right, down
 int dy[5] = {0,0,0,1,-1};
+int dirx[8] = {-1,-1,-1,0,1,1,1,0};
+int diry[8] = {-1,0,1,1,1,0,-1,-1};
 int next_spawn[12];
+int gren[12];
+int grenx[12];
+int greny[12];
 int global_changes = -1;
 
 int max(int a, int b)
@@ -122,6 +129,16 @@ void del_bullet()
 	bullet = head;
 }
 
+
+void get_Pos(int *x,int *y)// dummy_function,modify this function to get a random position
+{
+	do
+	{
+		*x = rand()%DIMENSION2; 
+		*y = rand()%DIMENSION1; 
+	}while(sends.matrix[*x][*y].type!=BLANK);
+}
+
 int check_player(struct sockaddr_in clientAddr)
 {
 	for(int i=0;i<=sends.num_players;i++)
@@ -155,7 +172,44 @@ void respawn()
 		}
 	}
 }
-
+void blast()
+{
+	int i,j;
+	for (i = 0;i<=sends.num_players; ++i)
+	{
+		if(gren[i] == sends.sqno && sends.clients[i].flag!=EXITED)
+		{
+			int posx = grenx[i];
+			int posy = greny[i];
+			for(j=0;j<8;j++)
+			{
+				if(posx+dirx[j] >= DIMENSION2-1 ||  posy+diry[j] >= DIMENSION1-1)
+					continue;
+				if(sends.matrix[posx+dirx[j]][posy+diry[j]].type>=1 && sends.matrix[posx+dirx[j]][posy+diry[j]].type<=sends.num_players+1)
+				{
+					if(sends.matrix[posx+dirx[j]][posy+diry[j]].type!=i+1) // not me 
+					{
+						sends.clients[i].points+=100;
+					}
+					int p_idx = sends.matrix[posx+dirx[j]][posy+diry[j]].type-1;
+					next_spawn[p_idx] = sends.sqno-50;
+					int nx,ny;
+					get_Pos(&nx,&ny);
+					sends.clients[p_idx].x = nx;
+					sends.clients[p_idx].y = ny;
+					sends.clients[p_idx].health = 100;
+				}// kill
+				if(sends.matrix[posx+dirx[j]][posy+diry[j]].type!=BLANK)
+				{
+					sends.matrix[posx+dirx[j]][posy+diry[j]].type = BLANK;
+					sends.matrix[posx+dirx[j]][posy+diry[j]].direction = -1;
+					++global_changes;
+				}
+			}
+			gren[i] = grenx[i] = greny[i] = -1;
+		}
+	}
+}
 void get_players_list()
 {
 	int ctr = 0;
@@ -218,16 +272,6 @@ int all_received()
 			return 0;
 	}
 	return 1;
-}
-
-
-void get_Pos(int *x,int *y)// dummy_function,modify this function to get a random position
-{
-	do
-	{
-		*x = rand()%DIMENSION2; 
-		*y = rand()%DIMENSION1; 
-	}while(sends.matrix[*x][*y].type!=BLANK);
 }
 
 int map_char_to_idx(char c)
@@ -525,6 +569,7 @@ int main()
 
 	memset(buffer,'\0',sizeof(buffer));
 	memset(next_spawn,-1,sizeof(next_spawn));
+	memset(gren,-1,sizeof(gren));
 	//memset(serverAddr.sin_zero, '\0', sizeof serverAddr.sin_zero);
 	
 	generate_maze();
@@ -644,7 +689,30 @@ int main()
 				printf("USER NOT A PART OF GAME\n");
 				continue;
 			}
-
+			if(strlen(buffer)==2 && buffer[0]=='g' && buffer[1]=='*')
+			{
+				int dir = sends.matrix[sends.clients[t].x][sends.clients[t].y].direction;
+				int nx = sends.clients[t].x;
+				int ny = sends.clients[t].y;
+				if(dir == LEFT)
+					ny--;
+				if(dir == UP)
+					nx--;
+				if(dir == RIGHT)
+					ny++;
+				if(dir == DOWN)
+					nx++;
+				if(sends.matrix[nx][ny].type == BLANK && gren[t] == -1)//  not already planted a bomb
+				{
+					grenx[t] = nx;
+					greny[t] = ny;
+					gren[t] = sends.sqno-50;
+					sends.matrix[nx][ny].type = GRENADE;
+					sends.matrix[nx][ny].direction = -1;
+					global_changes++;
+				}
+			}
+			else
 			if(strlen(buffer)==2 && buffer[0]=='p' && buffer[1]=='*')
 			{
 				sends.clients[t].flag = PAUSED;
@@ -705,6 +773,7 @@ int main()
 		sends.sqno--;
 		printf("sequence nnumber %d\n",sends.sqno);
 		respawn();
+		blast();
 		//ADD A TIME LIMIT HERE
 		usleep(70000);
 		
