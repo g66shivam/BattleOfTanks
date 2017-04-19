@@ -147,10 +147,14 @@ void print_matrix(int i, int j){
 
 }
 
+void clear(){
+	printf("\033[2J\033[1;1H");
+}
+
 void display(){
 	isAlive = 0;
-	printf("\033[2J\033[1;1H");
 	int i,j;
+	clear();
 	printf("\t\t\t Time Remaining : %d\n",receive.sqNo/10);
 	printf("Nick\t\tPoints\t\t\t Your health : %d\n",receive.clients[myIndex].health);
 	printf("Sequence no. %d\n",curSeq);
@@ -158,6 +162,7 @@ void display(){
 		if(receive.clients[i].flag == EXITED) continue;
 		printf("%s\t\t%d\n",receive.clients[i].name,receive.clients[i].points);	
 	}
+	printf("\t\t\t\t press 'p' for pause. press 'o' for exit \n");
 	printf("%s\n\n",KWHT1);
 	for(i=0;i<DIMENSION2;i++){
 		for(j=0;j<DIMENSION1;j++){
@@ -171,7 +176,7 @@ void display(){
 		printf("%s\n",KWHT1);
 	}
 	printf("%s%s",KWHT1,kwht);
-	i = 0, j = 0;
+	i = 1, j = 0;
 	while(j < 4){
 		while(receive.msg[i] != '*' && receive.msg[i] != '\0'){
 			printf("%c",receive.msg[i++]);
@@ -183,7 +188,7 @@ void display(){
 }
 
 int isValid(char c){
-	if(c == ' ' || c == 'd' || c == 's' || c == 'a' || c == 'w' || c == 'p' || c == 'o') 
+	if(c == ' ' || c == 'd' || c == 's' || c == 'a' || c == 'w' || c == 'p' || c == 'o' || c == 'g') 
 		return 1;
 	return 0;
 }
@@ -280,6 +285,10 @@ int main()
 		if(counter >= 8 && isAlive && isValid(buffer[0])){
 			counter = 0;
 			sendto(socketfd,buffer,1024,0,(struct sockaddr*)&serverAddr,addr_size);
+			if(buffer[0] == 'o'){
+				printf("\n You have exited the game. Well played . See you next time !! \n");
+				return 0;
+			}
 		}
 		while(1){
 			n = recvfrom(socketfd,&receive,sizeof(SEND),MSG_DONTWAIT,(struct sockaddr*)&serverAddr,&addr_size);
@@ -326,7 +335,7 @@ int main()
 					printf("\n\t\t\t\t");
 				else if(buffer[i] == '$'){
 					printf("\t");
-					if(buffer[i+1] == 1) printf("Ready\t");
+					if(buffer[i+1] == 1) printf("Ready\t\t");
 					else printf("Not Ready\t");
 					printf("%c Team",buffer[i+2]);
 					i += 2;
@@ -337,7 +346,7 @@ int main()
 			printf("\n\n");
 		}
 		if(flag){
-			printf("\t\t\t\tWhich team do you want to join ?? (range 1-9).\n\t\t\t\t Are you ready for the game ?? (y or n) : format ex -> y2 \n");
+			printf("\t\t\t\tWhich team do you want to join ?? (range 1-9).\n\t\t\t\t Are you ready for the game ?? (y or n) : format(eg. y2) \n");
 		}
 		char c = '$'; 
 		getInput(&c);
@@ -355,5 +364,55 @@ int main()
 		sendto(socketfd,buffer,1024,0,(struct sockaddr*)&serverAddr,addr_size);
 		n = recvfrom(socketfd,buffer,1024,MSG_DONTWAIT,(struct sockaddr*)&serverAddr,&addr_size);
 	}
+
+	// level 2 game starting 
+
+	printf("here\n");
+	n = recvfrom(socketfd,&receive,sizeof(SEND),0,(struct sockaddr*)&serverAddr,&addr_size);
+	printf("received\n");
+	if(n > 0){ // sending acknowledgment
+		curSeq = receive.sqNo;
+		buffer[0] = '$'; buffer[1] = myIndex + '0'; buffer[2] = '\0';
+		sendto(socketfd,buffer,1024,0,(struct sockaddr*)&serverAddr,addr_size);
+		printf("ACK sent %d\n",curSeq);
+	}
+	display();
+	buffer[1] = '*';
+	buffer[2] = '\0';
+	isAlive = 1;
+	gameEnd = 0 , counter = 0;
+	while(1){ // level 2 starts
+		counter++;
+		buffer[0] = '$';
+		//buffer[0] = get();
+		getInput(&buffer[0]);
+		if(buffer[0] == '*')
+			break;
+		if(counter >= 8 && isAlive && isValid(buffer[0])){
+			counter = 0;
+			sendto(socketfd,buffer,1024,0,(struct sockaddr*)&serverAddr,addr_size);
+			if(buffer[0] == 'o'){
+				printf("\n You have exited the game. Well played . See you next time !! \n");
+				return 0;
+			}
+		}
+		while(1){
+			n = recvfrom(socketfd,&receive,sizeof(SEND),MSG_DONTWAIT,(struct sockaddr*)&serverAddr,&addr_size);
+			if(n > 0 && curSeq >= receive.sqNo){
+				curSeq = receive.sqNo;
+				printf("%s\n",receive.msg);
+				if(receive.msg[0] == '*' && receive.msg[1] == '*' && receive.msg[2] == '*'){ // level 1 ends
+					printf("level2 ends!!\n");
+					gameEnd = 1;
+					buffer[0] = '$'; buffer[1] = '0' + myIndex; buffer[2] = '\0';
+					sendto(socketfd,buffer,1024,0,(struct sockaddr*)&serverAddr,addr_size);
+					break;
+				}
+				display();
+			}
+			else break;
+		}
+	}
+	printf("\t\t\t\t Level-2 ended \n ");
 	return 0;
 }
