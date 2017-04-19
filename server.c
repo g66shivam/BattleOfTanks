@@ -28,6 +28,7 @@
 #define DIMENSION2 40
 #define EXITED 5
 #define PAUSED 6
+#define LEVEL_TIME 100
 
 int dx[5] = {0,-1,1,0,0};// left,up, right, down
 int dy[5] = {0,0,0,1,-1};
@@ -391,7 +392,7 @@ int delete_or_not(BULLET *bul) // reassgined 100 health to dead player but not i
 		sends.changes[cpos].cell = sends.matrix[bul->x][bul->y];*/
 		ret = 1;
 	}
-	else
+	/*else
 	if(sends.matrix[nx][ny].type == BRICK_WEAK)
 	{
 		int c_health = sends.matrix[nx][ny].health;
@@ -402,7 +403,7 @@ int delete_or_not(BULLET *bul) // reassgined 100 health to dead player but not i
 			sends.matrix[nx][ny].direction = -1;
 			global_changes++;
 		}
-	}
+	}*/
 	else if(sends.matrix[nx][ny].type == BLANK || sends.matrix[nx][ny].type == BULLETS)
 	{
 		printf("in bullets %d %d %d %d\n",bul->x,bul->y,nx,ny);
@@ -678,7 +679,7 @@ int main()
 	printf("out\n");
 
 	get_maze();
-	sends.sqno = 1000;
+	sends.sqno = LEVEL_TIME;
 	int prev = sends.sqno;
 
 	while(!all_received())
@@ -791,7 +792,7 @@ int main()
 
 		move_bullets();
 		sends.sqno--;
-		printf("sequence nnumber %d\n",sends.sqno);
+		//printf("sequence nnumber %d\n",sends.sqno);
 		respawn();
 		//blast();
 		//ADD A TIME LIMIT HERE
@@ -938,7 +939,7 @@ int main()
 	get_maze();
 	
 	printf("LEVEL 2 started\n");
-	sends.sqno = 1000;
+	sends.sqno = LEVEL_TIME;
 	prev = sends.sqno;
 	memset(sends.msg,'\0',sizeof(sends.msg));
 
@@ -1250,7 +1251,7 @@ int main()
 	get_maze();
 	
 	printf("LEVEL 3 started\n");
-	sends.sqno = 1000;
+	sends.sqno = LEVEL_TIME;
 	prev = sends.sqno;
 	memset(sends.msg,'\0',sizeof(sends.msg));
 
@@ -1280,7 +1281,7 @@ int main()
 			int n = sendto(socketfd,&sends,sizeof(SEND),0,(struct sockaddr*)&((sends.clients[i]).address),addr_size);
 			printf("%d\n",n);
 			if(n>0)
-				printf("sending matrix2---\n");//
+				printf("sending matrix3---\n");//
 			memset(buffer,'\0',sizeof(buffer));
 			recvfrom(socketfd,buffer,1024,0,(struct sockaddr*)&clientAddr,&addr_size);
 		
