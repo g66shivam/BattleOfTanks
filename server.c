@@ -502,14 +502,14 @@ void move_bullets()
 	del_bullet();
 }
 
-void fill(int maze,int type int start_row,int end_row, int start_col, int end_col){
+void fill(int maze,int type,int start_row,int end_row, int start_col, int end_col){
 	int i=maze;
 	int j=start_row;
 	int m=start_col;
 	if(type==0){
 	for(;j<=end_row;j++){
 		for(m=start_col;m<end_col;m++){
-			mazedata[i][j][m].type=	BRICK_WEAK;
+			mazedata[i][j][m].type=	BRICK;
 		}
 	//printf("%d\n",j);
 	}}
@@ -549,7 +549,7 @@ void generate_maze(){
 	}
 	for(i=0; i<MAZES;i++){
 		for(j=0;j<DIMENSION1;j++){
-			mazedata[i][0][j].type=	BRICK_WEAK;
+			mazedata[i][0][j].type=	BRICK;
 			mazedata[i][DIMENSION2-1][j].type= BRICK_WEAK; 
 		}	
 	}
@@ -607,12 +607,12 @@ void generate_maze(){
 	
 }
 
-void get_maze(int i){
+void get_maze(int r){
 	int j,m;
 	for(j=0;j<DIMENSION2;j++){
 		for(m=0;m<DIMENSION1;m++){
-			sends.matrix[j][m].type=mazedata[i][j][m].type;
-			sends.matrix[j][m].direction=mazedata[i][j][m].direction;
+			sends.matrix[j][m].type=mazedata[r][j][m].type;
+			sends.matrix[j][m].direction=mazedata[r][j][m].direction;
 		}
 	}
 
@@ -991,7 +991,7 @@ int main()
 	}
 	memset(sends.msg,'\0',sizeof(sends.msg));
 
-	generate_maze();
+	//generate_maze();
 
 	get_maze(1);
 	fill_pow();
@@ -1304,9 +1304,9 @@ int main()
 	}
 	memset(sends.msg,'\0',sizeof(sends.msg));
 
-	generate_maze();
+	//generate_maze();
 	get_maze(2);
-	
+	fill_pow();
 	printf("LEVEL 3 started\n");
 	sends.sqno = LEVEL_TIME;
 	prev = sends.sqno;
