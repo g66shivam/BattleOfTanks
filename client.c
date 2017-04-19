@@ -308,7 +308,7 @@ int main()
 		}
 		if(gameEnd) break;
 	}
-	return 0;
+	//return 0;
 	memset(buffer,0,sizeof buffer);
 	printf("2");
 	while(buffer[0] != '$'){

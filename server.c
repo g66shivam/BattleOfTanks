@@ -898,6 +898,10 @@ int main()
 		}
 		usleep(50000);
 	}
+
+	///////////////////////////////////////////////////
 	printf("LEVEL 2 started\n");
+	sends.sqno = 1000;
+	
 	return 0;
 }
