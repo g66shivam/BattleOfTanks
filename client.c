@@ -29,6 +29,7 @@
 #define KRED  "\x1B[31m"
 #define KGRN  "\x1B[32m"
 #define KYEL  "\x1B[44m"
+#define KYEL1  "\x1B[43m"
 #define KBLU  "\x1B[34m"
 #define KMAG  "\x1B[35m"
 #define KCYN  "\x1B[36m"
@@ -143,6 +144,8 @@ void print_matrix(int i, int j){
 	}
 	else if(receive.matrix[i][j].type==BRICK)
 	printf("%s%c",KYEL,' ');
+	else if(receive.matrix[i][j].type==BRICK_WEAK)
+	printf("%s%c",KYEL1,' ');
 	else if(receive.matrix[i][j].type==BULLET)
 	printf("%s%c",KCYN,'-');
 	else if(receive.matrix[i][j].type == GRENADE)
