@@ -25,6 +25,7 @@
 #define DIMENSION 80
 #define DIMENSION2 40
 #define DIMENSION1 110
+#define BRICK_WEAK 14
 #define KNRM  "\x1B[0m"
 #define KRED  "\x1B[31m"
 #define KGRN  "\x1B[32m"
