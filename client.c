@@ -536,6 +536,7 @@ int main()
 		receive.clients[i].address.sin_port = htons(9200);
 	}
 	id = 0;
+	sz = 0;
 	int messageFlag = 0;
 	while(1){ // level 3 starts
 		counter++;
@@ -551,7 +552,7 @@ int main()
 				return 0;
 			}
 		}
-		else if(messageFlag == 1){
+		else if(buffer[0] != '$' && messageFlag == 1){
 			if(buffer[0] == ']'){
 				messageFlag = 0;
 				message[sz] = '\0';
@@ -562,6 +563,8 @@ int main()
 		}
 		else if(buffer[0] == '['){
 			messageFlag = 1;
+			sprintf(message,"%s says : ",receive.clients[myIndex].name);
+			sz = strlen(message);
 		}
 		while(1){
 			n = recvfrom(socketfd,&receive,sizeof(SEND),MSG_DONTWAIT,(struct sockaddr*)&serverAddr,&addr_size);
