@@ -172,11 +172,10 @@ void display(){
 		teamScores[receive.clients[i].teamNo] += receive.clients[i].points;
 	}
 	printf("Nick\t\tPoints\n");
-	printf("Sequence no. %d\n",curSeq);
 	for(i=0,j=0;i<=receive.num_players;i++){
 		if(receive.clients[i].flag == EXITED) continue;
 		while(j<10 && teamScores[j] == -1) j++;
-		if(j<10 || level > 1 && teamScores[j] >= 0) 
+		if(j<10 && level > 1 && teamScores[j] >= 0) 
 			printf("%s\t\t%d\t\t\t Team-%d \t %d\n",receive.clients[i].name,receive.clients[i].points,j,teamScores[j]+1);	
 		else
 			printf("%s\t\t%d\n",receive.clients[i].name,receive.clients[i].points);
@@ -220,9 +219,7 @@ socklen_t addr_size;
 void sendMessage(){
 	int i;
 	for(i=0;i<=receive.num_players;i++){
-		if(myIndex != i && receive.clients[myIndex].teamNo == receive.clients[i].teamNo){
-			//memset((char *)&receive.clients[i].address,0,sizeof(receive.clients[i].address));
-			//receive.clients[i].address.sin_family = AF_INET;
+		if(receive.clients[myIndex].teamNo == receive.clients[i].teamNo){
 			receive.clients[i].address.sin_port = htons(9200);
 			sendto(socketmsg,message,1024,0,(struct sockaddr*)&receive.clients[i].address,addr_size);
 			printf("vim_droped\n");
@@ -254,6 +251,8 @@ int main()
 	memset(buffer,0, 1024);
 	int i;
 
+	/* Initializing user's display name */
+
 	printf("Enter the display name \n");
 	buffer[0] = '*';
 	scanf("%s",buffer+1);
@@ -261,6 +260,8 @@ int main()
 		return 0;
 	sendto(socketfd,&buffer,1024,0,(struct sockaddr*)&serverAddr,addr_size);
 	int n;
+
+	/* Initial connection establishment */
 
 	while(1){ // Ready and not ready block
 
@@ -302,6 +303,8 @@ int main()
 		buffer[2] = '\0';
 		sendto(socketfd,buffer,1024,0,(struct sockaddr*)&serverAddr,addr_size);
 	}
+
+	/* connection established and Level-1 of the game starting */
 	
 	level = 1;
 	printf("here\n");
@@ -354,21 +357,20 @@ int main()
 		if(gameEnd) break;
 	}
 
+	/* Level-1 ends and Team formation for team-2 beginning*/
+
 	memset(buffer,0,sizeof buffer);
-	printf("2");
 	while(buffer[0] != '$'){
-		printf("2");
 		n = recvfrom(socketfd,buffer,1024,0,(struct sockaddr*)&serverAddr,&addr_size);
 	}
 	n = recvfrom(socketfd,buffer,1024,MSG_DONTWAIT,(struct sockaddr*)&serverAddr,&addr_size);
 	char team = '$';
 	printf("%s",KWHT1);
-	printf("%s\n",buffer);
 	while(1){ // level 2 starting 
 		int flag = 0;
 		if(n > 0){
 			if(buffer[0] == '$'){
-				printf("\n\t\t\t\tLevel 2 is about to start !! \n");
+				printf("\n\t\t\t\tLevel-2 is about to start !! \n");
 				break;
 			}
 			flag = 1;
@@ -430,7 +432,6 @@ int main()
 	while(1){ // level 2 starts
 		counter++;
 		buffer[0] = '$';
-		//buffer[0] = get();
 		getInput(&buffer[0]);
 		if(buffer[0] == '*')
 			break;
@@ -464,15 +465,12 @@ int main()
 	printf("\t\t\t\t Level-2 ended \n ");
 
 	memset(buffer,0,sizeof buffer);
-	printf("2");
 	while(buffer[0] != '$'){
-		printf("2");
 		n = recvfrom(socketfd,buffer,1024,0,(struct sockaddr*)&serverAddr,&addr_size);
 	}
 	n = recvfrom(socketfd,buffer,1024,MSG_DONTWAIT,(struct sockaddr*)&serverAddr,&addr_size);
 	team = '$';
 	printf("%s",KWHT1);
-	printf("%s\n",buffer);
 	while(1){ // level 3 starting 
 		int flag = 0;
 		if(n > 0){
@@ -593,6 +591,23 @@ int main()
 		if(gameEnd)
 			break;
 	}
-	printf("\t\t\t GAME ENDS \n");
+	clear();
+	printf("\t\t\t GAME ENDS \n\t\t\t\t FINAL POINTS \n\t\t\t\t");
+	memset(teamScores,-1,sizeof teamScores);
+	for(i=0;i<=receive.num_players;i++){
+		teamScores[receive.clients[i].teamNo] += receive.clients[i].points;
+	}
+	printf("Nick\t\tPoints\n");
+	int j;
+	for(i=0,j=0;i<=receive.num_players;i++){
+		if(receive.clients[i].flag == EXITED) continue;
+		while(j<10 && teamScores[j] == -1) j++;
+		if(j<10 && level > 1 && teamScores[j] >= 0) 
+			printf("%s\t\t%d\t\t\t Team-%d \t %d\n",receive.clients[i].name,receive.clients[i].points,j,teamScores[j]+1);	
+		else
+			printf("%s\t\t%d\n",receive.clients[i].name,receive.clients[i].points);
+		j++;
+	}
+	printf("See you next time !! Have a good day");
 	return 0;
 }
