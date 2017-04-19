@@ -225,7 +225,7 @@ int main()
 	memset((char *)&msgAddr,0,sizeof(msgAddr));
 	msgAddr.sin_family = AF_INET;
 	msgAddr.sin_port = htons(9200);
-	msgAddr.sin_addr.s_addr = inet_addr("192.168.1.104");
+	msgAddr.sin_addr.s_addr = inet_addr("192.168.1.101");
 	bind(socketmsg,(struct sockaddr *)&msgAddr,sizeof(msgAddr));
 
 	int socketfd,nBytes;
