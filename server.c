@@ -19,6 +19,7 @@
 #define P4 4
 #define BULLETS 11
 #define BRICK 12
+#define BRICK_WEAK 14
 #define GRENADE 13
 #define BLANK 0
 #define DIMENSION 80
@@ -390,6 +391,18 @@ int delete_or_not(BULLET *bul) // reassgined 100 health to dead player but not i
 		sends.changes[cpos].cell = sends.matrix[bul->x][bul->y];*/
 		ret = 1;
 	}
+	else
+	if(sends.matrix[nx][ny].type == BRICK_WEAK)
+	{
+		int c_health = sends.matrix[nx][ny].health;
+		c_health = max(0,c_health-20);
+		if(c_health == 0) // puts blank there
+		{
+			sends.matrix[nx][ny].type = BLANK;
+			sends.matrix[nx][ny].direction = -1;
+			global_changes++;
+		}
+	}
 	else if(sends.matrix[nx][ny].type == BLANK || sends.matrix[nx][ny].type == BULLETS)
 	{
 		printf("in bullets %d %d %d %d\n",bul->x,bul->y,nx,ny);
@@ -450,7 +463,7 @@ int delete_or_not(BULLET *bul) // reassgined 100 health to dead player but not i
 			/*cpos++;
 			sends.changes[cpos].row = nx;
 			sends.changes[cpos].col = ny;
-			sends.changes[cpos].cell = sends.matrix[nx][ny];*/
+			sends.changes[cpos].cell = sends.matrix[nx][ny];*/	
 		}
 		sends.matrix[bul->x][bul->y].type = BLANK;
 		sends.matrix[bul->x][bul->y].direction = -1;
