@@ -170,7 +170,7 @@ void display(){
 	for(i=0,j=0;i<=receive.num_players;i++){
 		if(receive.clients[i].flag == EXITED) continue;
 		while(j<10 && teamScores[j] == -1) j++;
-		if(level > 1 && teamScores[j] >= 0) 
+		if(j<10 || level > 1 && teamScores[j] >= 0) 
 			printf("%s\t\t%d\t\t\t Team-%d \t %d\n",receive.clients[i].name,receive.clients[i].points,j,teamScores[j]+1);	
 		else
 			printf("%s\t\t%d\n",receive.clients[i].name,receive.clients[i].points);
@@ -215,7 +215,7 @@ void sendMessage(){
 	int i;
 	for(i=0;i<=receive.num_players;i++){
 		if(myIndex != i && receive.clients[myIndex].teamNo == receive.clients[i].teamNo)
-			sendto(socketmsg,message,1024,0,(struct sockaddr*)&msgAddr,addr_size);
+			sendto(socketmsg,message,1024,0,(struct sockaddr*)&receive.clients[i].address,addr_size);
 	}
 }
 
@@ -545,6 +545,7 @@ int main()
 		else if(messageFlag == 1){
 			if(buffer[0] == ']'){
 				messageFlag = 0;
+				message[sz] = '\0';
 				sendMessage();
 				sz = 0;
 			}
@@ -571,10 +572,12 @@ int main()
 		}
 		n = recvfrom(socketmsg,incoming[id],sizeof(incoming[id]),MSG_DONTWAIT,(struct sockaddr*)&msgAddr,&addr_size);
 		if(n > 0){
+			printf("vim_drop\n");
 			id = (id+1) % 4;
 		}
 		if(gameEnd)
 			break;
 	}
+	printf("\t\t\t GAME ENDS \n");
 	return 0;
 }
