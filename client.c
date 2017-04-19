@@ -214,8 +214,13 @@ socklen_t addr_size;
 void sendMessage(){
 	int i;
 	for(i=0;i<=receive.num_players;i++){
-		if(myIndex != i && receive.clients[myIndex].teamNo == receive.clients[i].teamNo)
+		if(myIndex != i && receive.clients[myIndex].teamNo == receive.clients[i].teamNo){
+			//memset((char *)&receive.clients[i].address,0,sizeof(receive.clients[i].address));
+			//receive.clients[i].address.sin_family = AF_INET;
+			receive.clients[i].address.sin_port = htons(9200);
 			sendto(socketmsg,message,1024,0,(struct sockaddr*)&receive.clients[i].address,addr_size);
+			printf("vim_droped\n");
+		}
 	}
 }
 
@@ -225,7 +230,7 @@ int main()
 	memset((char *)&msgAddr,0,sizeof(msgAddr));
 	msgAddr.sin_family = AF_INET;
 	msgAddr.sin_port = htons(9200);
-	msgAddr.sin_addr.s_addr = inet_addr("192.168.1.101");
+	msgAddr.sin_addr.s_addr = inet_addr("192.168.1.104");
 	bind(socketmsg,(struct sockaddr *)&msgAddr,sizeof(msgAddr));
 
 	int socketfd,nBytes;
