@@ -30,6 +30,7 @@ int dx[5] = {0,-1,1,0,0};// left,up, right, down
 int dy[5] = {0,0,0,1,-1};
 int next_spawn[12];
 int global_changes = -1;
+char global_str[200];
 
 int max(int a, int b)
 {
@@ -173,6 +174,15 @@ void get_players_list()
 		ctr++;
 	}
 	buffer[ctr] = '\0';
+}
+
+void append_msg(char str[200])
+{
+	int n = strlen(sends.msg);
+	sends.msg[n] = '*';
+	n++;
+	sends.msg[n] = '\0';
+	strcat(sends.msg,str);
 }
 
 void get_team_list()
@@ -380,6 +390,12 @@ int delete_or_not(BULLET *bul) // reassgined 100 health to dead player but not i
 			sends.matrix[nx][ny].direction = -1;
 			next_spawn[player_idx] = sends.sqno-100;
 			global_changes++;
+
+			memset(global_str,'\0',sizeof(global_str));
+			strcpy(global_str,sends.clients[killer].name);
+			strcat(global_str," killed ");
+			strcat(global_str,cur.name);
+			append_msg(global_str);
 			/*cpos++;
 			sends.changes[cpos].row = nx;
 			sends.changes[cpos].col = ny;
@@ -596,7 +612,7 @@ int main()
 	printf("out\n");
 
 	get_maze();
-	sends.sqno = 10000;
+	sends.sqno = 1000;
 	int prev = sends.sqno;
 
 	while(!all_received())
@@ -649,6 +665,11 @@ int main()
 			{
 				sends.clients[t].flag = PAUSED;
 				sends.clients[t].points-=20;
+				//player pausing
+				memset(global_str,'\0',sizeof(global_str));
+				strcpy(global_str,"Game Paused by ");
+				strcat(global_str,(sends.clients[t]).name);
+				append_msg(global_str);
 			}
 			else if(strlen(buffer)==2 && buffer[0]=='o' && buffer[1]=='*')
 			{
@@ -658,6 +679,11 @@ int main()
 				sends.matrix[curx][cury].type = BLANK;
 				sends.matrix[curx][cury].direction = -1;
 				global_changes++;
+
+				memset(global_str,'\0',sizeof(global_str));
+				strcpy(global_str,"Game Exited by ");
+				strcat(global_str,(sends.clients[t]).name);
+				append_msg(global_str);
 			}
 			else if(strlen(buffer)==2 && buffer[1]=='*')
 			{
@@ -690,13 +716,10 @@ int main()
 			}
 			else
 			{
-				int n = strlen(sends.msg);
-				sends.msg[n] = '*';
-				n++;
-				sends.msg[n] = '\0';
-				char str[100] = {"Invalid input by "};
-				strcat(str,(sends.clients[t]).name);
-				strcat(sends.msg,str);
+				memset(global_str,'\0',sizeof(global_str));
+				strcpy(global_str,"Invalid input by ");
+				strcat(global_str,(sends.clients[t]).name);
+				append_msg(global_str);
 			}
 			memset(buffer,'\0',sizeof(buffer));
 		}
@@ -710,6 +733,7 @@ int main()
 		
 		if(sends.sqno==(prev-10) || global_changes!=-1)
 		{
+			printf("Message----- %s\n",sends.msg);
 			for(int i=0;i<=sends.num_players;i++)
 			{
 				if(sends.clients[i].flag==EXITED)
@@ -717,9 +741,12 @@ int main()
 				sendto(socketfd,&sends,sizeof(SEND),0,(struct sockaddr*)&((sends.clients[i]).address),addr_size);
 				//sendto(socketfd,sends.matrix,sizeof(sends.matrix),0,(struct sockaddr*)&((sends.clients[i]).address),addr_size);
 			}
-			memset(sends.msg,'\0',1024);	
+			//memset(sends.msg,'\0',1024);	
 			global_changes = -1;
 			prev = sends.sqno;
+
+			if(sends.sqno%50==0)
+				memset(sends.msg,'\0',sizeof(sends.msg));
 		}
 
 		//LEVEL FINISH
@@ -832,5 +859,45 @@ int main()
 		}	
 	}
 	printf("LEVEL 2 STARTING\n");
+
+
+	for(int i=0;i<=sends.num_players;i++)
+	{
+		if(sends.clients[i].flag==EXITED)
+			continue;
+		received[i] = 0;
+	}
+	memset(sends.msg,'\0',sizeof(sends.msg));
+
+	while(!all_received())
+	{	
+		for(int i=0;i<=sends.num_players;i++)
+		{
+			if(sends.clients[i].flag==EXITED)
+				continue;
+			printf("printing i %d\n",i);
+			
+			sends.msg[0] = i+'0';
+			printf("%d\n",sends.msg[0]-'0');
+			int n = sendto(socketfd,&sends,sizeof(SEND),0,(struct sockaddr*)&((sends.clients[i]).address),addr_size);
+			printf("%d\n",n);
+			if(n>0)
+				printf("sending matrix2---\n");//
+			memset(buffer,'\0',sizeof(buffer));
+			recvfrom(socketfd,buffer,1024,0,(struct sockaddr*)&clientAddr,&addr_size);
+		
+			if(strlen(buffer)==2 && buffer[0]=='$')
+			{
+				printf("received ackn'\n");
+				received[buffer[1]-'0'] = 1;
+				printf("received ack from --> %d\n",buffer[1]-'0');
+			}
+
+			if(all_received())
+				break;	
+		}
+		usleep(50000);
+	}
+	printf("LEVEL 2 started\n");
 	return 0;
 }
