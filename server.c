@@ -714,7 +714,6 @@ int main()
 				printf("USER NOT A PART OF GAME\n");
 				continue;
 			}
-
 			if(strlen(buffer)==2 && buffer[0]=='p' && buffer[1]=='*')
 			{
 				sends.clients[t].flag = PAUSED;
@@ -1018,6 +1017,11 @@ int main()
 					strcat(global_str,(sends.clients[t]).name);
 					append_msg(global_str);
 				}
+
+				memset(global_str,'\0',sizeof(global_str));
+				strcpy(global_str,"Grenade placed by ");
+				strcat(global_str,(sends.clients[t]).name);
+				append_msg(global_str);
 			}
 			else if(strlen(buffer)==2 && buffer[0]=='p' && buffer[1]=='*')
 			{
@@ -1084,7 +1088,6 @@ int main()
 
 		move_bullets();
 		sends.sqno--;
-		//printf("sequence nnumber %d\n",sends.sqno);
 		respawn();
 		blast();
 		//ADD A TIME LIMIT HERE
