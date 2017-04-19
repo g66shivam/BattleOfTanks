@@ -502,7 +502,7 @@ void move_bullets()
 	del_bullet();
 }
 
-void fill(int maze,int type,int start_row,int end_row, int start_col, int end_col){
+void fill(int maze,int type ,int start_row,int end_row, int start_col, int end_col){
 	int i=maze;
 	int j=start_row;
 	int m=start_col;
@@ -550,13 +550,14 @@ void generate_maze(){
 	for(i=0; i<MAZES;i++){
 		for(j=0;j<DIMENSION1;j++){
 			mazedata[i][0][j].type=	BRICK;
-			mazedata[i][DIMENSION2-1][j].type= BRICK_WEAK; 
+
+			mazedata[i][DIMENSION2-1][j].type= BRICK; 
 		}	
 	}
 	for(i=0; i<MAZES;i++){
 		for(j=0;j<DIMENSION2;j++){
-			mazedata[i][j][0].type=	BRICK_WEAK;
-			mazedata[i][j][DIMENSION1-1].type= BRICK_WEAK;
+			mazedata[i][j][0].type=	BRICK;
+			mazedata[i][j][DIMENSION1-1].type= BRICK;
 	
 		}	
 	}
@@ -589,8 +590,9 @@ void generate_maze(){
 	fill(1,0,27,35,DIMENSION1-32,DIMENSION1-30);
 	fill(2,0,4,8,0,10);
 	//fill(3,45,49,0,20);
-	fill(2,0,20,24,10,30);
-	fill(2,0,10,40,20,24);
+	fill(2,1,20,24,10,30);
+	fill(2,0,10,19,20,24);
+	fill(2,0,25,40,20,24);
 	fill(2,0,4,8,35,45);
 	fill(2,0,4,8,DIMENSION1-30,DIMENSION1);
 	//fill(0,10,40,110,125);
@@ -602,9 +604,6 @@ void generate_maze(){
 	fill(2,1,0,35,55,59);
 	fill(2,1,16,20,59,65);
 	fill(2,1,25,29,59,70);
-
-	
-	
 }
 
 void get_maze(int r){
