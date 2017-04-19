@@ -68,7 +68,8 @@ SEND receive;
 
 char buffer[1024];
 int myIndex,isAlive,curSeq,level;
-int teamScores[11];
+int teamScores[11],sz,id;
+char message[1024],incoming[4][1024];
 
 void getInput(char* c){
 	struct pollfd mypoll = { STDIN_FILENO, POLLIN|POLLPRI };
@@ -162,17 +163,18 @@ void display(){
 	printf(" Your health : %d \t\t\t Time Remaining : %d\n",receive.clients[myIndex].health , receive.sqNo/10);
 	memset(teamScores,-1,sizeof teamScores);
 	for(i=0;i<=receive.num_players;i++){
-		teamScores[receive.clients[i].teamNo]++;
+		teamScores[receive.clients[i].teamNo] += receive.clients[i].points;
 	}
 	printf("Nick\t\tPoints\n");
 	printf("Sequence no. %d\n",curSeq);
 	for(i=0,j=0;i<=receive.num_players;i++){
 		if(receive.clients[i].flag == EXITED) continue;
-		while(teamScores[j] == -1) j++;
-		if(level > 1) 
-			printf("%s\t\t%d\t\t\t Team-%d \t %d\n",receive.clients[i].name,receive.clients[i].points,j,teamScores[j]);	
+		while(j<10 && teamScores[j] == -1) j++;
+		if(level > 1 && teamScores[j] >= 0) 
+			printf("%s\t\t%d\t\t\t Team-%d \t %d\n",receive.clients[i].name,receive.clients[i].points,j,teamScores[j]+1);	
 		else
 			printf("%s\t\t%d\n",receive.clients[i].name,receive.clients[i].points);
+		j++;
 	}
 	printf("\t\t\t\t press 'p' for pause. press 'o' for exit \n");
 	printf("%s\n\n",KWHT1);
@@ -195,6 +197,8 @@ void display(){
 		i++;
 		j++;
 	}
+	for(j=0;j<4;j++)
+		printf("%s\n",incoming[j]);
 }
 
 int isValid(char c){
@@ -203,12 +207,30 @@ int isValid(char c){
 	return 0;
 }
 
+int socketmsg;
+struct sockaddr_in msgAddr;
+socklen_t addr_size;
+
+void sendMessage(){
+	int i;
+	for(i=0;i<=receive.num_players;i++){
+		if(myIndex != i && receive.clients[myIndex].teamNo == receive.clients[i].teamNo)
+			sendto(socketmsg,message,1024,0,(struct sockaddr*)&msgAddr,addr_size);
+	}
+}
+
 int main()
 {
+	socketmsg = socket(PF_INET,SOCK_DGRAM,0);
+	memset((char *)&msgAddr,0,sizeof(msgAddr));
+	msgAddr.sin_family = AF_INET;
+	msgAddr.sin_port = htons(9200);
+	msgAddr.sin_addr.s_addr = inet_addr("192.168.1.104");
+	bind(socketmsg,(struct sockaddr *)&msgAddr,sizeof(msgAddr));
+
 	int socketfd,nBytes;
 
 	struct sockaddr_in serverAddr;
-	socklen_t addr_size;
 	socketfd = socket(PF_INET,SOCK_DGRAM,0);
 
 	memset((char *)&serverAddr,0,sizeof(serverAddr));
@@ -319,11 +341,6 @@ int main()
 		}
 		if(gameEnd) break;
 	}
-<<<<<<< HEAD
-
-=======
-	//return 0;
->>>>>>> 82dc70f226119491c3ec55337d6e8b2dc22ca5e1
 	memset(buffer,0,sizeof buffer);
 	printf("2");
 	while(buffer[0] != '$'){
@@ -428,7 +445,135 @@ int main()
 			}
 			else break;
 		}
+		if(gameEnd == 1) 
+			break;
 	}
 	printf("\t\t\t\t Level-2 ended \n ");
+
+	memset(buffer,0,sizeof buffer);
+	printf("2");
+	while(buffer[0] != '$'){
+		printf("2");
+		n = recvfrom(socketfd,buffer,1024,0,(struct sockaddr*)&serverAddr,&addr_size);
+	}
+	n = recvfrom(socketfd,buffer,1024,MSG_DONTWAIT,(struct sockaddr*)&serverAddr,&addr_size);
+	team = '$';
+	printf("%s",KWHT1);
+	printf("%s\n",buffer);
+	while(1){ // level 3 starting 
+		int flag = 0;
+		if(n > 0){
+			if(buffer[0] == '$'){
+				printf("\n\t\t\t\tLevel-3 is about to start !! \n");
+				break;
+			}
+			flag = 1;
+			printf("\t\t\t\tPlayers currently connected \n\n");
+			i = 0;	
+			printf("%s\n",buffer);
+			while(buffer[i]){
+				if(buffer[i] == '*')									
+					printf("\n\t\t\t\t");
+				else if(buffer[i] == '$'){
+					printf("\t");
+					if(buffer[i+1] == 1) printf("Ready\t\t");
+					else printf("Not Ready\t");
+					printf("%c Team",buffer[i+2]);
+					i += 2;
+				}
+				else printf("%c",buffer[i]);
+				i++;
+			}
+			printf("\n\n");
+		}
+		if(flag){
+			printf("\t\t\t\tWhich team do you want to join ?? (range 1-9).\n\t\t\t\t Are you ready for the game ?? (y or n) : format(eg. y2) \n");
+		}
+		char c = '$'; 
+		getInput(&c);
+		if(team == '*') break;
+		if(c != 'y' && c != 'n'){
+			n = recvfrom(socketfd,buffer,1024,MSG_DONTWAIT,(struct sockaddr*)&serverAddr,&addr_size);
+			continue;
+		}
+		scanf("%c",&team);
+		buffer[0] = '*';
+		if(c == 'y') buffer[1] = '1';
+		else buffer[1] = '2';
+		buffer[2] = team;
+		buffer[3] = '\0';
+		sendto(socketfd,buffer,1024,0,(struct sockaddr*)&serverAddr,addr_size);
+		n = recvfrom(socketfd,buffer,1024,MSG_DONTWAIT,(struct sockaddr*)&serverAddr,&addr_size);
+	}
+
+	level = 3;
+	printf("here\n");
+	n = recvfrom(socketfd,&receive,sizeof(SEND),0,(struct sockaddr*)&serverAddr,&addr_size);
+	printf("received\n");
+	if(n > 0){ // sending acknowledgment
+		curSeq = receive.sqNo;
+		buffer[0] = '$'; buffer[1] = myIndex + '0'; buffer[2] = '\0';
+		sendto(socketfd,buffer,1024,0,(struct sockaddr*)&serverAddr,addr_size);
+		printf("ACK sent %d\n",curSeq);
+	}
+	display();
+	buffer[1] = '*';
+	buffer[2] = '\0';
+	isAlive = 1;
+	gameEnd = 0 , counter = 0;
+
+	for(i=0;i<=receive.num_players;i++){
+		receive.clients[i].address.sin_port = htons(9200);
+	}
+	id = 0;
+	int messageFlag = 0;
+	while(1){ // level 3 starts
+		counter++;
+		buffer[0] = '$';
+		getInput(&buffer[0]);
+		if(buffer[0] == '*')
+			break;
+		if(messageFlag == 0 && counter >= 8 && isAlive && isValid(buffer[0])){
+			counter = 0;
+			sendto(socketfd,buffer,1024,0,(struct sockaddr*)&serverAddr,addr_size);
+			if(buffer[0] == 'o'){
+				printf("\n You have exited the game. Well played . See you next time !! \n");
+				return 0;
+			}
+		}
+		else if(messageFlag == 1){
+			if(buffer[0] == ']'){
+				messageFlag = 0;
+				sendMessage();
+				sz = 0;
+			}
+			else message[sz++] = buffer[0];
+		}
+		else if(buffer[0] == '['){
+			messageFlag = 1;
+		}
+		while(1){
+			n = recvfrom(socketfd,&receive,sizeof(SEND),MSG_DONTWAIT,(struct sockaddr*)&serverAddr,&addr_size);
+			if(n > 0 && curSeq >= receive.sqNo){
+				curSeq = receive.sqNo;
+				printf("%s\n",receive.msg);
+				if(receive.msg[0] == '*' && receive.msg[1] == '*' && receive.msg[2] == '*'){ // level 3 ends
+					printf("level-3 ends!!\n");
+					gameEnd = 1;
+					buffer[0] = '$'; buffer[1] = '0' + myIndex; buffer[2] = '\0';
+					sendto(socketfd,buffer,1024,0,(struct sockaddr*)&serverAddr,addr_size);
+					break;
+				}
+				display();
+			}
+			else break;
+		}
+		n = recvfrom(socketmsg,incoming[id],sizeof(incoming[id]),MSG_DONTWAIT,(struct sockaddr*)&msgAddr,&addr_size);
+		if(n > 0){
+			id = (id+1) % 4;
+		}
+		if(gameEnd)
+			break;
+	}
 	return 0;
 }
