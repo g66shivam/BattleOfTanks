@@ -40,7 +40,7 @@ int grenx[12];
 int greny[12];
 int global_changes = -1;
 char global_str[200];
-
+int brick_pow[DIMENSION2][DIMENSION1];
 int max(int a, int b)
 {
 	if(a>b)
@@ -395,14 +395,19 @@ int delete_or_not(BULLET *bul) // reassgined 100 health to dead player but not i
 	else
 	if(sends.matrix[nx][ny].type == BRICK_WEAK)
 	{
-		int c_health = sends.matrix[nx][ny].health;
+		int c_health = brick_pow[nx][ny];
 		c_health = max(0,c_health-20);
+		brick_pow[nx][ny] = c_health;
 		if(c_health == 0) // puts blank there
 		{
 			sends.matrix[nx][ny].type = BLANK;
 			sends.matrix[nx][ny].direction = -1;
 			global_changes++;
 		}
+		sends.matrix[bul->x][bul->y].type = BLANK;
+		sends.matrix[bul->x][bul->y].direction = -1;
+		global_changes++;
+		ret = 1;
 	}
 	else if(sends.matrix[nx][ny].type == BLANK || sends.matrix[nx][ny].type == BULLETS)
 	{
@@ -503,7 +508,7 @@ void fill(int maze, int start_row,int end_row, int start_col, int end_col){
 	int m=start_col;
 	for(;j<=end_row;j++){
 		for(m=start_col;m<end_col;m++){
-			mazedata[i][j][m].type=	BRICK;
+			mazedata[i][j][m].type=	BRICK_WEAK;
 		}
 	//printf("%d\n",j);
 	}
@@ -534,14 +539,14 @@ void generate_maze(){
 	}
 	for(i=0; i<MAZES;i++){
 		for(j=0;j<DIMENSION1;j++){
-			mazedata[i][0][j].type=	BRICK;
-			mazedata[i][DIMENSION2-1][j].type= BRICK; 
+			mazedata[i][0][j].type=	BRICK_WEAK;
+			mazedata[i][DIMENSION2-1][j].type= BRICK_WEAK; 
 		}	
 	}
 	for(i=0; i<MAZES;i++){
 		for(j=0;j<DIMENSION2;j++){
-			mazedata[i][j][0].type=	BRICK;
-			mazedata[i][j][DIMENSION1-1].type= BRICK;
+			mazedata[i][j][0].type=	BRICK_WEAK;
+			mazedata[i][j][DIMENSION1-1].type= BRICK_WEAK;
 	
 		}	
 	}
@@ -590,9 +595,21 @@ void get_maze(){
 	}
 }
 
+void fill_pow()
+{
+	int i,j;
+	for(i=0;i<DIMENSION2;i++)
+	{
+		for (j = 0; j < DIMENSION1; ++j)
+		{
+			brick_pow[i][j] =  100;
+		}
+	}
+}
 int main()
 {	
 	srand(time(NULL));
+	fill_pow();
 	int socketfd,n;
 	struct sockaddr_in serverAddr,clientAddr;
 	socklen_t addr_size;
@@ -937,7 +954,7 @@ int main()
 
 	generate_maze();
 	get_maze();
-	
+	fill_pow();
 	printf("LEVEL 2 started\n");
 	sends.sqno = 1000;
 	prev = sends.sqno;
@@ -1159,5 +1176,6 @@ int main()
 			break;
 		}
 	}
+	// call fill_pow when making maze for level 3
 	return 0;
 }
