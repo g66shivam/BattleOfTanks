@@ -547,6 +547,20 @@ void generate_maze(){
 	fill(0,0,35,55,59);
 	fill(0,16,20,59,65);
 	fill(0,25,29,59,70);
+	fill(1,15,15,0,40);
+	fill(1,10,15,40,42);
+	fill(1,10,10,42,70);
+	fill(1,10,15,70,72);
+	fill(1,20,20,DIMENSION1-50,DIMENSION1);
+	fill(1,20,25,DIMENSION1-52,DIMENSION1-50);
+	fill(1,25,25,DIMENSION1-65,DIMENSION1-52);
+	fill(1,25,30,DIMENSION1-67,DIMENSION1-65);
+	fill(1,35,DIMENSION2,30,32);
+	fill(1,35,35,32,DIMENSION1-30);
+	fill(1,27,35,DIMENSION1-32,DIMENSION1-30);
+
+	
+	
 }
 
 void get_maze(){
