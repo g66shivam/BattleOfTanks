@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <termios.h>
 
+#define BRICK_WEAK 14
 #define GRENADE 13
 #define EXITED 5
 #define UP 1
