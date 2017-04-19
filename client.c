@@ -105,7 +105,7 @@ char get()
 
 void print_matrix(int i, int j){
 
-	if(receive.matrix[i][j].type==P1){
+	if(receive.matrix[i][j].type==P1 || receive.matrix[i][j].type==5){
 	if(receive.matrix[i][j].direction==UP)
 	printf("%s%c",KRED,'^');
 	else if(receive.matrix[i][j].direction==DOWN)
@@ -115,7 +115,7 @@ void print_matrix(int i, int j){
 	else if(receive.matrix[i][j].direction==RIGHT)
 	printf("%s%c",KRED,'>');
 	}
-	else if(receive.matrix[i][j].type==P2){
+	else if(receive.matrix[i][j].type==P2 || receive.matrix[i][j].type==6){
 	if(receive.matrix[i][j].direction==UP)
 	printf("%s%c",KGRN,'^');
 	else if(receive.matrix[i][j].direction==DOWN)
@@ -125,7 +125,7 @@ void print_matrix(int i, int j){
 	else if(receive.matrix[i][j].direction==RIGHT)
 	printf("%s%c",KGRN,'>');
 	}
-	else if(receive.matrix[i][j].type==P3){
+	else if(receive.matrix[i][j].type==P3 || receive.matrix[i][j].type==7){
 	if(receive.matrix[i][j].direction==UP)
 	printf("%s%c",KMAG,'^');
 	else if(receive.matrix[i][j].direction==DOWN)
@@ -135,7 +135,7 @@ void print_matrix(int i, int j){
 	else if(receive.matrix[i][j].direction==RIGHT)
 	printf("%s%c",KMAG,'>');
 	}
-	else if(receive.matrix[i][j].type==P4){
+	else if(receive.matrix[i][j].type==P4 || receive.matrix[i][j].type==8){
 	if(receive.matrix[i][j].direction==UP)
 	printf("%s%c",KBLU,'^');
 	else if(receive.matrix[i][j].direction==DOWN)
