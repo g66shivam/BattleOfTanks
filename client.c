@@ -21,6 +21,7 @@
 #define P3 3
 #define P4 4
 #define BULLET 11
+#define BRICK_WEAK 14
 #define BRICK 12
 #define BLANK 0
 #define DIMENSION 80
