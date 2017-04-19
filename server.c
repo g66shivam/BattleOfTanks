@@ -6,6 +6,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <time.h>
 
 #define UP 1
 #define DOWN 2
@@ -380,22 +381,25 @@ int delete_or_not(BULLET *bul) // reassgined 100 health to dead player but not i
 		{
 			//**CREATING NEW PLAYER ASSIGN ALL VARIABLES ADD NEW PLAYER TO CHANGES
 			int killer = bul->p_num;
-			sends.clients[killer].points += 100;
-			int nposx,nposy;
-			get_Pos(&nposx,&nposy);
-			cur.x = nposx;
-			cur.y = nposy;
-			cur.health = 100;
-			sends.matrix[nx][ny].type = BLANK;
-			sends.matrix[nx][ny].direction = -1;
-			next_spawn[player_idx] = sends.sqno-100;
-			global_changes++;
+			if(sends.clients[killer].teamno!=cur.teamno)
+			{
+				sends.clients[killer].points += 100;
+				int nposx,nposy;
+				get_Pos(&nposx,&nposy);
+				cur.x = nposx;
+				cur.y = nposy;
+				cur.health = 100;
+				sends.matrix[nx][ny].type = BLANK;
+				sends.matrix[nx][ny].direction = -1;
+				next_spawn[player_idx] = sends.sqno-100;
+				global_changes++;
 
-			memset(global_str,'\0',sizeof(global_str));
-			strcpy(global_str,sends.clients[killer].name);
-			strcat(global_str," killed ");
-			strcat(global_str,cur.name);
-			append_msg(global_str);
+				memset(global_str,'\0',sizeof(global_str));
+				strcpy(global_str,sends.clients[killer].name);
+				strcat(global_str," killed ");
+				strcat(global_str,cur.name);
+				append_msg(global_str);
+			}
 			/*cpos++;
 			sends.changes[cpos].row = nx;
 			sends.changes[cpos].col = ny;
@@ -527,6 +531,7 @@ void get_maze(){
 
 int main()
 {	
+	srand(time(NULL));
 	int socketfd,n;
 	struct sockaddr_in serverAddr,clientAddr;
 	socklen_t addr_size;
@@ -902,6 +907,159 @@ int main()
 	///////////////////////////////////////////////////
 	printf("LEVEL 2 started\n");
 	sends.sqno = 1000;
-	
+	prev = sends.sqno;
+	memset(sends.msg,'\0',sizeof(sends.msg));
+
+	//removing all bullets
+	BULLET *trav = bullet;
+	while(trav!=NULL)
+	{
+		trav->to_delete = 1;
+		trav = trav->next;
+	}
+	del_bullet();
+
+	//no spawning
+	memset(next_spawn,-1,sizeof(next_spawn));
+
+	while(1)
+	{
+		n = recvfrom(socketfd,buffer,1024,MSG_DONTWAIT,(struct sockaddr*)&clientAddr,&addr_size);
+		
+		if(n>0)
+		{
+			printf("here2\n");
+			printf("%s\n",buffer);
+			int t = check_player(clientAddr);
+			if(t==-1)
+			{
+				printf("USER NOT A PART OF GAME\n");
+				continue;
+			}
+
+			if(strlen(buffer)==2 && buffer[0]=='p' && buffer[1]=='*')
+			{
+				sends.clients[t].flag = PAUSED;
+				sends.clients[t].points-=20;
+				//player pausing
+				memset(global_str,'\0',sizeof(global_str));
+				strcpy(global_str,"Game Paused by ");
+				strcat(global_str,(sends.clients[t]).name);
+				append_msg(global_str);
+			}
+			else if(strlen(buffer)==2 && buffer[0]=='o' && buffer[1]=='*')
+			{
+				sends.clients[t].flag = EXITED;
+				int curx = sends.clients[t].x;
+				int cury = sends.clients[t].y;
+				sends.matrix[curx][cury].type = BLANK;
+				sends.matrix[curx][cury].direction = -1;
+				global_changes++;
+
+				memset(global_str,'\0',sizeof(global_str));
+				strcpy(global_str,"Game Exited by ");
+				strcat(global_str,(sends.clients[t]).name);
+				append_msg(global_str);
+			}
+			else if(strlen(buffer)==2 && buffer[1]=='*')
+			{
+				if(buffer[0]==' ')
+				{
+					int x = (sends.clients[t]).x;
+					int y = (sends.clients[t]).y;
+
+					int nx = x + dx[sends.matrix[x][y].direction];
+					int ny = y + dy[sends.matrix[x][y].direction];
+					
+					if(sends.matrix[nx][ny].type==BLANK)
+					{
+						BULLET *temp = make_bullet(nx,ny,sends.matrix[x][y].direction,t);
+						printf("in bullet %d %d %s\n",nx,ny,(sends.clients[t]).name);
+						if(bullet==NULL)
+							bullet = temp;
+						else
+						{
+							temp->next = bullet;
+							bullet = temp;
+						}
+					}
+				}
+				else
+				{
+					sends.clients[t].flag = 1;
+					move_player(t,buffer[0]);
+				}
+			}
+			else
+			{
+				memset(global_str,'\0',sizeof(global_str));
+				strcpy(global_str,"Invalid input by ");
+				strcat(global_str,(sends.clients[t]).name);
+				append_msg(global_str);
+			}
+			memset(buffer,'\0',sizeof(buffer));
+		}
+
+		move_bullets();
+		sends.sqno--;
+		printf("sequence number %d\n",sends.sqno);
+		respawn();
+		//ADD A TIME LIMIT HERE
+		usleep(70000);
+		
+		if(sends.sqno==(prev-10) || global_changes!=-1)
+		{
+			printf("Message----- %s\n",sends.msg);
+			for(int i=0;i<=sends.num_players;i++)
+			{
+				if(sends.clients[i].flag==EXITED)
+					continue;
+				sendto(socketfd,&sends,sizeof(SEND),0,(struct sockaddr*)&((sends.clients[i]).address),addr_size);
+				//sendto(socketfd,sends.matrix,sizeof(sends.matrix),0,(struct sockaddr*)&((sends.clients[i]).address),addr_size);
+			}
+			//memset(sends.msg,'\0',1024);	
+			global_changes = -1;
+			prev = sends.sqno;
+
+			if(sends.sqno%50==0)
+				memset(sends.msg,'\0',sizeof(sends.msg));
+		}
+
+		//LEVEL FINISH
+		if(sends.sqno==0)
+		{
+			for(int i=0;i<=sends.num_players;i++)
+				received[i] = 0;
+			while(!all_received())
+			{	
+				for(int i=0;i<=sends.num_players;i++)
+				{
+					if(sends.clients[i].flag==EXITED)
+						continue;
+					//if(received[i]==1)
+					//	continue;	
+					strcpy(sends.msg,"***");
+					int n = sendto(socketfd,&sends,sizeof(SEND),0,(struct sockaddr*)&((sends.clients[i]).address),addr_size);
+					//int n = sendto(socketfd,buffer,1024,0,(struct sockaddr*)&((sends.clients[i]).address),addr_size);
+					//int n = sendto(socketfd,buffer,1024,0,(struct sockaddr*)&clientAddr,addr_size);
+					if(n>0)
+						printf("sent----------\n");
+					memset(buffer,'\0',sizeof(buffer));
+					recvfrom(socketfd,buffer,1024,0,(struct sockaddr*)&clientAddr,&addr_size);
+					
+					if(strlen(buffer)==2 && buffer[0]=='$')
+					{
+						printf("received ackn'\n");
+						received[buffer[1]-'0'] = 1;
+						printf("received second ack from --> %s\n",sends.clients[buffer[1]-'0'].name);
+					}
+					if(all_received())
+						break;	
+				}
+			}
+			printf("LEVEL ending\n");
+			break;
+		}
+	}
 	return 0;
 }
