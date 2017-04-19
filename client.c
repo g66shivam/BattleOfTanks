@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <termios.h>
 
+#define GRENADE 13
 #define EXITED 5
 #define UP 1
 #define DOWN 2
@@ -66,7 +67,8 @@ typedef struct {
 SEND receive;
 
 char buffer[1024];
-int myIndex,isAlive,curSeq;
+int myIndex,isAlive,curSeq,level;
+int teamScores[11];
 
 void getInput(char* c){
 	struct pollfd mypoll = { STDIN_FILENO, POLLIN|POLLPRI };
@@ -142,6 +144,8 @@ void print_matrix(int i, int j){
 	printf("%s%c",KYEL,' ');
 	else if(receive.matrix[i][j].type==BULLET)
 	printf("%s%c",KCYN,'-');
+	else if(receive.matrix[i][j].type == GRENADE)
+	printf("%so",KRED);
 	else
 	printf("%s%c",KWHT1,' ');
 
@@ -155,12 +159,20 @@ void display(){
 	isAlive = 0;
 	int i,j;
 	clear();
-	printf("\t\t\t Time Remaining : %d\n",receive.sqNo/10);
-	printf("Nick\t\tPoints\t\t\t Your health : %d\n",receive.clients[myIndex].health);
-	printf("Sequence no. %d\n",curSeq);
+	printf(" Your health : %d \t\t\t Time Remaining : %d\n",receive.clients[myIndex].health , receive.sqNo/10);
+	memset(teamScores,-1,sizeof teamScores);
 	for(i=0;i<=receive.num_players;i++){
+		teamScores[receive.clients[i].teamNo]++;
+	}
+	printf("Nick\t\tPoints\n");
+	printf("Sequence no. %d\n",curSeq);
+	for(i=0,j=0;i<=receive.num_players;i++){
 		if(receive.clients[i].flag == EXITED) continue;
-		printf("%s\t\t%d\n",receive.clients[i].name,receive.clients[i].points);	
+		while(teamScores[j] == -1) j++;
+		if(level > 1) 
+			printf("%s\t\t%d\t\t\t Team-%d \t %d\n",receive.clients[i].name,receive.clients[i].points,j,teamScores[j]);	
+		else
+			printf("%s\t\t%d\n",receive.clients[i].name,receive.clients[i].points);
 	}
 	printf("\t\t\t\t press 'p' for pause. press 'o' for exit \n");
 	printf("%s\n\n",KWHT1);
@@ -169,9 +181,7 @@ void display(){
 			if( receive.matrix[i][j].type == myIndex+1 ){
 				isAlive = 1;
 			}
-				
 			print_matrix(i,j);
-			//printf("%s",KWHT);
 		}
 		printf("%s\n",KWHT1);
 	}
@@ -259,6 +269,7 @@ int main()
 		sendto(socketfd,buffer,1024,0,(struct sockaddr*)&serverAddr,addr_size);
 	}
 	
+	level = 1;
 	printf("here\n");
 	n = recvfrom(socketfd,&receive,sizeof(SEND),0,(struct sockaddr*)&serverAddr,&addr_size);
 	printf("received\n");
@@ -308,7 +319,7 @@ int main()
 		}
 		if(gameEnd) break;
 	}
-	return 0;
+
 	memset(buffer,0,sizeof buffer);
 	printf("2");
 	while(buffer[0] != '$'){
@@ -367,6 +378,7 @@ int main()
 
 	// level 2 game starting 
 
+	level = 2;
 	printf("here\n");
 	n = recvfrom(socketfd,&receive,sizeof(SEND),0,(struct sockaddr*)&serverAddr,&addr_size);
 	printf("received\n");
