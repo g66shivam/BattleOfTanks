@@ -28,7 +28,7 @@
 #define DIMENSION2 40
 #define EXITED 5
 #define PAUSED 6
-#define LEVEL_TIME 100
+#define LEVEL_TIME 1000
 
 int dx[5] = {0,-1,1,0,0};// left,up, right, down
 int dy[5] = {0,0,0,1,-1};
