@@ -27,3 +27,20 @@ Handling abrupt disconnection of player.
 Scores should be carried throughout all the levels even if the player exits from one level.
 Different levels of game should be well optimized acc. to the characteristics of player.
 Server client acknowledgement should be maintained at proper time intervals to ensure the server and different clients remain connected for smooth functioning of game.
+
+Major Game Features - 
+1. Team Buildup 
+2. Team Chat application
+3. Live ScoreBoard
+4. Player Respawning
+5. Bullet Firing
+6. Time Bombs
+7. Randomized Maze generation
+8. Three difficulty levels
+
+Compiling and executing the code - 
+1. gcc -g server.c -o server
+2. ./server 'Server-IP'
+3. gcc -g client.c -o client
+4. ./client 'Server-IP' 'Client-IP'
+
